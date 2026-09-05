@@ -4,26 +4,26 @@
     "slug": "Sunscreen-NOCTI",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/placeholder.jpg",
     "scheme": "sunscreennocti",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/placeholder.jpg",
+        "backgroundImage": "./assets/images/placeholder.jpg",
+        "monochromeImage": "./assets/images/placeholder.jpg"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/placeholder.jpg"
     },
     "plugins": [
       "expo-router",
@@ -39,7 +39,18 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Sunscreen-NOCTI to access your photos to set a profile picture.",
+          "cameraPermission": "Allow Sunscreen-NOCTI to use your camera to take a profile picture."
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

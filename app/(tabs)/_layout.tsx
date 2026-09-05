@@ -1,5 +1,5 @@
-import { Tabs } from 'expo-router';
-import NavBar from '../../components/NavBar';
+import { Tabs } from 'expo-router'
+import NavBar from '../../components/NavBar'
 
 export default function TabLayout() {
   return (
@@ -11,5 +11,5 @@ export default function TabLayout() {
       <Tabs.Screen name="log" options={{ title: 'log' }} />
       <Tabs.Screen name="profile" options={{ title: 'profile' }} />
     </Tabs>
-  );
+  )
 }

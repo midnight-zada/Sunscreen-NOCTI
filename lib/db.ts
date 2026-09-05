@@ -3,9 +3,11 @@ import { SQLiteDatabase } from 'expo-sqlite'
 
 export async function openDB() {
   const db = await SQLite.openDatabaseAsync('app.db')
+
   await db.execAsync(`PRAGMA journal_mode = WAL;`)
   await db.execAsync(`PRAGMA foreign_keys = ON;`)
   await runMigrations(db)
+
   return db
 }
 
@@ -14,6 +16,19 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS device_metadata (
       key TEXT PRIMARY KEY NOT NULL,
       value TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS user_profile (
+      user_id TEXT PRIMARY KEY,
+      display_name TEXT,
+      bio TEXT,
+      skin_type TEXT,                   -- fitzpatrick skin types
+      profile_image_uri TEXT,
+      
+      -- ISO 8601 string
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      synced_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS sunscreen (
@@ -103,6 +118,22 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
   `)
 }
 
-export async function dropTable(db: SQLiteDatabase, table: string): Promise<void> {
-  await db.execAsync(/* sql */ `DROP TABLE IF EXISTS ${table}`)
+export async function clearTable(db: SQLiteDatabase, table: string): Promise<void> {
+  await db.execAsync(/* sql */ `DELETE FROM ${table}`)
+}
+
+export async function resetDB(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`PRAGMA foreign_keys = OFF;`)
+  
+  await db.execAsync(/* sql */ `
+    DROP TABLE IF EXISTS application;
+    DROP TABLE IF EXISTS user_sunscreen;
+    DROP TABLE IF EXISTS sunscreen;
+    DROP TABLE IF EXISTS user_profile;
+    DROP TABLE IF EXISTS device_metadata;
+    DROP TABLE IF EXISTS uv_reading;
+  `)
+
+  await db.execAsync(`PRAGMA foreign_keys = ON;`)
+  await runMigrations(db)
 }

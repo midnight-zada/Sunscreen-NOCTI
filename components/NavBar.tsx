@@ -1,51 +1,54 @@
-import { useEffect, useRef } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { debug } from '@/constants/debug';
+import { Ionicons } from '@expo/vector-icons'
+import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs'
+import { useEffect, useRef } from 'react'
+import { Pressable, StyleSheet, View } from 'react-native'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-type IconName = keyof typeof Ionicons.glyphMap;
+type IconName = keyof typeof Ionicons.glyphMap
 
 const ICONS: Record<string, { active: IconName; inactive: IconName }> = {
   index: { active: 'home', inactive: 'home-outline' },
   log: { active: 'add-circle', inactive: 'add-circle-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
-};
+}
 
-export default function GlassNavBar({ state, navigation }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
-  const scale = useSharedValue(1);
-  const isFirstRender = useRef(true);
+export default function NavBar({ state, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets()
+  const scale = useSharedValue(1)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+      isFirstRender.current = false
+      return
     }
     scale.value = withSequence(
       withTiming(1.02, { duration: 100, easing: Easing.in(Easing.exp) }),
       withTiming(1, { duration: 200, easing: Easing.out(Easing.linear) })
-    );
-  }, [state.index, scale]);
+    )
+  }, [state.index, scale])
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-  }));
+  }))
 
   return (
     <View
       style={[styles.wrapper, { bottom: insets.bottom - 8 }]}
       pointerEvents="box-none"
     >
-      <Animated.View
-        style={[styles.blurContainer, animatedContainerStyle]}
-      >
+      <Animated.View style={[styles.blurContainer, animatedContainerStyle]}>
         {state.routes.map((route, index) => {
-          const isActive = state.index === index;
-          const icons = ICONS[route.name] ?? ICONS.index;
-          const isAdd = route.name === 'log';
+          const isActive = state.index === index
+          const icons = ICONS[route.name] ?? ICONS.index
+          const isAdd = route.name === 'log'
 
           return (
             <Pressable
@@ -60,15 +63,15 @@ export default function GlassNavBar({ state, navigation }: BottomTabBarProps) {
                 color={isAdd ? '#444444' : isActive ? '#ee7700' : 'rgba(60,60,67,0.6)'}
               />
             </Pressable>
-          );
+          )
         })}
       </Animated.View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
-  wrapper: { 
+  wrapper: {
     position: 'absolute',
     left: 0,
     right: 0,
@@ -92,5 +95,5 @@ const styles = StyleSheet.create({
   },
   activeTab: {
     backgroundColor: 'rgba(111, 111, 111, 0.3)',
-  }
-});
+  },
+})
