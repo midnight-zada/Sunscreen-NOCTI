@@ -1,5 +1,6 @@
 import DebugProfile from '@/components/dev/DebugProfile'
 import { useAppContext } from '@/context/AppContext'
+import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getUserProfile, UserProfile } from '@/lib/userProfile'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
@@ -27,7 +28,14 @@ export default function ProfileScreen() {
         <Ionicons name="ellipsis-horizontal" size={moderateScale(28)} />
       </View>
       <View style={[styles.main]}>
-        <View style={styles.profileBorder}>
+        <View
+          style={[
+            styles.profileBorder,
+            {
+              borderColor: profileData?.image_border_color || 'transparent',
+            },
+          ]}
+        >
           <View style={[styles.profilePicture]}>
             <Image
               source={
@@ -64,7 +72,7 @@ const styles = ScaledSheet.create({
   profile: {
     flex: 1,
     paddingInline: '3%',
-    backgroundColor: '#faf9f6',
+    backgroundColor: PROFILE_SCREEN_BG_COLOR,
   },
 
   header: {
@@ -80,7 +88,7 @@ const styles = ScaledSheet.create({
   },
 
   profileBorder: {
-    width: '106@s',
+    width: '105@s',
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -115,7 +123,7 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderColor: '#222',
-    borderWidth: '3@s',
+    borderWidth: '2.5@s',
     borderRadius: 12,
   },
 

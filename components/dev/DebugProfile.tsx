@@ -4,6 +4,7 @@ import {
   InsertUserProfile,
   insertUserProfile,
   pickProfileImage,
+  setBorderColor,
   updateUserProfile,
 } from '@/lib/userProfile'
 import { Pressable, Text, View } from 'react-native'
@@ -23,6 +24,7 @@ const DebugProfile = ({ refreshProfile }: DebugProfileProps) => {
     bio: 'Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST',
     skin_type: 'type_3',
     profile_image_uri: null,
+    image_border_color: '#faf9f6',
   }
 
   const loadUser = async () => {
@@ -35,11 +37,17 @@ const DebugProfile = ({ refreshProfile }: DebugProfileProps) => {
   }
 
   const uploadImage = async () => {
-    const uri = await pickProfileImage(userId)
+    const imageResult = await pickProfileImage(userId)
+    if (!imageResult) return
+
+    const [uri, borderColor] = imageResult
 
     if (uri) {
-      await updateUserProfile(db, userId, { profile_image_uri: uri })
-      console.log('Updated Profile Image:', uri)
+      await updateUserProfile(db, userId, {
+        profile_image_uri: uri,
+      })
+      await setBorderColor(db, userId, borderColor)
+      console.log('Updated Profile Image:', imageResult)
       refreshProfile()
     }
   }

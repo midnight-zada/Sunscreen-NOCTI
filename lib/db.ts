@@ -24,6 +24,7 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       bio TEXT,
       skin_type TEXT,                   -- fitzpatrick skin types
       profile_image_uri TEXT,
+      image_border_color TEXT,
       
       -- ISO 8601 string
       created_at TEXT NOT NULL,
