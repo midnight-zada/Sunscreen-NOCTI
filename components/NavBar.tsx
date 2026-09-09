@@ -60,7 +60,7 @@ export default function NavBar({ state, navigation }: BottomTabBarProps) {
               <Ionicons
                 name={isActive ? icons.active : icons.inactive}
                 size={isActive ? 28 : 26}
-                color={isAdd ? '#444444' : isActive ? '#ee7700' : 'rgba(60,60,67,0.6)'}
+                color={isAdd ? '#444444' : isActive ? '#ff2800' : 'rgba(60,60,67,0.6)'}
               />
             </Pressable>
           )

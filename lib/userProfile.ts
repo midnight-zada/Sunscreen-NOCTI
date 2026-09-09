@@ -2,7 +2,9 @@ import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { Directory, File, Paths } from 'expo-file-system'
 import { ImageManipulator } from 'expo-image-manipulator'
 import {
+  launchCameraAsync,
   launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
   requestMediaLibraryPermissionsAsync,
 } from 'expo-image-picker'
 import { SQLiteDatabase } from 'expo-sqlite'
@@ -15,6 +17,8 @@ import {
   RGB,
   rgbToHex,
 } from './imageColor'
+
+import type { ImageRef } from 'expo-image-manipulator'
 
 export interface UserProfile {
   user_id: string
@@ -80,21 +84,25 @@ export async function updateUserProfile(
 
   await db.runAsync(
     /* sql */ `
-    UPDATE user_profile
-    SET display_name = COALESCE(?, display_name),
-        bio = COALESCE(?, bio),
-        skin_type = COALESCE(?, skin_type),
-        profile_image_uri = COALESCE(?, profile_image_uri),
-        image_border_color = COALESCE(?, image_border_color),
-        updated_at = ?
-    WHERE user_id = ?`,
+    INSERT INTO user_profile
+      (user_id, display_name, bio, skin_type, profile_image_uri,
+      image_border_color, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      display_name = COALESCE(excluded.display_name, display_name),
+      bio = COALESCE(excluded.bio, bio),
+      skin_type = COALESCE(excluded.skin_type, skin_type),
+      profile_image_uri = COALESCE(excluded.profile_image_uri, profile_image_uri),
+      image_border_color = COALESCE(excluded.image_border_color, image_border_color),
+      updated_at = excluded.updated_at`,
+    userId,
     data.display_name ?? null,
     data.bio ?? null,
     data.skin_type ?? null,
     data.profile_image_uri ?? null,
     data.image_border_color ?? null,
     now,
-    userId
+    now
   )
 }
 
@@ -107,12 +115,37 @@ export async function setBorderColor(
 
   await db.runAsync(
     /* sql */ `
-    UPDATE user_profile 
+    UPDATE user_profile
     SET image_border_color = ?, updated_at = ?
     WHERE user_id = ?`,
     color,
     now,
     userId
+  )
+}
+
+export async function setProfileImage(
+  db: SQLiteDatabase,
+  userId: string,
+  uri: string | null,
+  color: string | null
+) {
+  const now = new Date().toISOString()
+
+  await db.runAsync(
+    /* sql */ `
+    INSERT INTO user_profile
+      (user_id, profile_image_uri, image_border_color, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      profile_image_uri = excluded.profile_image_uri,
+      image_border_color = excluded.image_border_color,
+      updated_at = excluded.updated_at`,
+    userId,
+    uri,
+    color,
+    now,
+    now
   )
 }
 
@@ -126,9 +159,10 @@ type Clusters = { samples: RGB[]; centroid: RGB }
 
 async function sampleBorder(uri: string, crop: Crop): Promise<RGB | null> {
   let croppedURI: string | undefined
+  let image: ImageRef | undefined
 
   try {
-    const image = await ImageManipulator.manipulate(uri).crop(crop).renderAsync()
+    image = await ImageManipulator.manipulate(uri).crop(crop).renderAsync()
     const saved = await image.saveAsync()
     croppedURI = saved.uri
 
@@ -150,6 +184,7 @@ async function sampleBorder(uri: string, crop: Crop): Promise<RGB | null> {
     )
     return null
   } finally {
+    image?.release()
     if (croppedURI) new File(croppedURI).delete()
   }
 }
@@ -256,3 +291,21 @@ export async function pickProfileImage(
 
   return await saveProfileImage(result.assets[0].uri, userId)
 }
+
+export async function takeProfilePhoto(
+  userId: string
+): Promise<[string, string | null] | null> {
+  const { status } = await requestCameraPermissionsAsync()
+  if (status !== 'granted') return null
+
+  const result = await launchCameraAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+  })
+
+  if (result.canceled) return null
+
+  return await saveProfileImage(result.assets[0].uri, userId)
+}
+

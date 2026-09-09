@@ -4,11 +4,13 @@ import {
   InsertUserProfile,
   insertUserProfile,
   pickProfileImage,
-  setBorderColor,
+  setProfileImage,
   updateUserProfile,
 } from '@/lib/userProfile'
 import { Pressable, Text, View } from 'react-native'
 import { ScaledSheet } from 'react-native-size-matters'
+import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics'
+
 import { useAppContext } from '../../context/AppContext'
 
 type DebugProfileProps = {
@@ -20,14 +22,15 @@ const DebugProfile = ({ refreshProfile }: DebugProfileProps) => {
 
   const userData: InsertUserProfile = {
     user_id: userId,
-    display_name: 'midnightzada',
-    bio: 'Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST Bio TEST',
+    display_name: '[placeholder]',
+    bio: '[placeholder]',
     skin_type: 'type_3',
     profile_image_uri: null,
     image_border_color: '#faf9f6',
   }
 
   const loadUser = async () => {
+    await impactAsync(ImpactFeedbackStyle.Soft)
     const result = await insertUserProfile(db, userData)
 
     if (result) console.log('Inserted -', userId)
@@ -37,33 +40,35 @@ const DebugProfile = ({ refreshProfile }: DebugProfileProps) => {
   }
 
   const uploadImage = async () => {
+    await impactAsync(ImpactFeedbackStyle.Soft)
     const imageResult = await pickProfileImage(userId)
     if (!imageResult) return
 
     const [uri, borderColor] = imageResult
 
     if (uri) {
-      await updateUserProfile(db, userId, {
-        profile_image_uri: uri,
-      })
-      await setBorderColor(db, userId, borderColor)
+      await setProfileImage(db, userId, uri, borderColor)
       console.log('Updated Profile Image:', imageResult)
+      await notificationAsync(NotificationFeedbackType.Success)
       refreshProfile()
     }
   }
 
   const dropUser = async () => {
+    await impactAsync(ImpactFeedbackStyle.Medium)
     await clearTable(db, 'user_profile')
     console.log('Dropped User Profile Data')
     refreshProfile()
   }
 
   const printUser = async () => {
+    await impactAsync(ImpactFeedbackStyle.Soft)
     const profileData = await getUserProfile(db, userId)
     console.log(profileData)
   }
 
   const hardReset = async () => {
+    await impactAsync(ImpactFeedbackStyle.Medium)
     await resetDB(db)
     console.log('DB Reset Complete')
   }

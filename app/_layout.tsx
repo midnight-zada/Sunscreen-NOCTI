@@ -1,7 +1,9 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppContext, AppContextType } from '../context/AppContext'
 
@@ -10,7 +12,6 @@ import { getUserId } from '../lib/id'
 
 export default function RootLayout() {
   const [ctx, setCtx] = useState<AppContextType | null>(null)
-  const insets = useSafeAreaInsets()
 
   useEffect(() => {
     async function initApp() {
@@ -25,12 +26,16 @@ export default function RootLayout() {
   if (!ctx) return null
 
   return (
-    <AppContext.Provider value={ctx}> 
-      <StatusBar style="dark" />
-      <View style={{ height: insets.top, backgroundColor: '#faf9f6' }} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-      </Stack>
-    </AppContext.Provider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <AppContext.Provider value={ctx}>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="settings" />
+          </Stack>
+        </AppContext.Provider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   )
 }

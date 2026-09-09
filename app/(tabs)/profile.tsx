@@ -4,11 +4,14 @@ import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getUserProfile, UserProfile } from '@/lib/userProfile'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { useCallback, useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
+import { router, useFocusEffect } from 'expo-router'
+import { useCallback, useState } from 'react'
+import { Pressable, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { moderateScale, ScaledSheet } from 'react-native-size-matters'
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets()
   const { db, userId } = useAppContext()
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
 
@@ -17,15 +20,32 @@ export default function ProfileScreen() {
     setProfileData(data)
   }, [db, userId])
 
-  useEffect(() => {
-    refreshProfile()
-  }, [refreshProfile])
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile()
+    }, [refreshProfile])
+  )
+
+  const openSettings = () => {
+    router.push('/settings')
+  }
 
   return (
-    <View style={styles.profile}>
+    <View
+      style={[
+        styles.profile,
+        {
+          paddingBlockStart: insets.top,
+        },
+      ]}
+    >
       <View style={styles.header}>
-        <Ionicons name="settings-outline" size={moderateScale(28)} />
-        <Ionicons name="ellipsis-horizontal" size={moderateScale(28)} />
+        <Pressable onPress={openSettings} hitSlop={7}>
+          <Ionicons name="settings-outline" size={moderateScale(28)} />
+        </Pressable>
+        <Pressable hitSlop={7}>
+          <Ionicons name="ellipsis-horizontal" size={moderateScale(28)} />
+        </Pressable>
       </View>
       <View style={[styles.main]}>
         <View
@@ -63,6 +83,7 @@ export default function ProfileScreen() {
         <Text style={styles.displayName}>{profileData?.display_name}</Text>
         <Text style={styles.bio}>{profileData?.bio}</Text>
       </View>
+      <View style={styles.seperator} />
       <DebugProfile refreshProfile={refreshProfile} />
     </View>
   )
@@ -84,7 +105,6 @@ const styles = ScaledSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingBlockStart: '20@s',
-    paddingBlockEnd: '8@s',
   },
 
   profileBorder: {
@@ -93,12 +113,11 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 23,
-    borderColor: '#6b37cd',
     borderWidth: '1.8@s',
   },
 
   profilePicture: {
-    width: '99@s',
+    width: '98.9@s',
     aspectRatio: 1,
     backgroundColor: '#4c4c4c',
     borderRadius: 20,
@@ -135,6 +154,7 @@ const styles = ScaledSheet.create({
 
   profileText: {
     gap: '5@s',
+    paddingBlock: '8@s',
   },
 
   displayName: {
@@ -146,4 +166,10 @@ const styles = ScaledSheet.create({
     fontSize: '14@ms',
     fontWeight: 500,
   },
+
+  seperator: {
+    width: '100%',
+    height: '1@s',
+    backgroundColor: '#000'
+  }
 })
