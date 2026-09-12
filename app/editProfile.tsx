@@ -1,3 +1,4 @@
+import { LoadingDots } from '@/components/LoadingDots'
 import { useAppContext } from '@/context/AppContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getBWContrast } from '@/lib/imageColor'
@@ -23,11 +24,11 @@ import { router } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { moderateScale, ScaledSheet } from 'react-native-size-matters'
+import { moderateScale, scale, ScaledSheet } from 'react-native-size-matters'
 
 type EditSheetMode = 'color' | 'picture' | null
 
-export const SettingsScreen = () => {
+export const EditProfile = () => {
   const insets = useSafeAreaInsets()
   const { db, userId } = useAppContext()
 
@@ -41,6 +42,9 @@ export const SettingsScreen = () => {
 
   const [isLoaded, setIsLoaded] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  const [isWaitingLibrary, setIsWaitingLibrary] = useState(true)
+  const [isWaitingPhoto, setIsWaitingPhoto] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -112,6 +116,9 @@ export const SettingsScreen = () => {
   )
 
   const applyImageResult = (imageResult: [string, string | null] | null) => {
+    setIsWaitingLibrary(false)
+    setIsWaitingPhoto(false)
+
     if (!imageResult) return
 
     const [uri, borderColor] = imageResult
@@ -120,9 +127,29 @@ export const SettingsScreen = () => {
     editSheetRef.current?.close()
   }
 
-  const uploadImage = async () => applyImageResult(await pickProfileImage(userId))
+  const uploadImage = async () => {
+    try {
+      setIsWaitingLibrary(true)
+      applyImageResult(await pickProfileImage(userId))
+    } catch (error) {
+      setIsWaitingLibrary(false)
+      console.log(
+        `Error Picking Image: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
 
-  const takeImage = async () => applyImageResult(await takeProfilePhoto(userId))
+  const takeImage = async () => {
+    try {
+      setIsWaitingPhoto(true)
+      applyImageResult(await takeProfilePhoto(userId))
+    } catch (error) {
+      setIsWaitingPhoto(false)
+      console.log(
+        `Error Taking Photo: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
 
   return (
     <View style={[styles.settings]}>
@@ -292,21 +319,34 @@ export const SettingsScreen = () => {
           </View>
           {sheetMode === 'picture' && (
             <View style={styles.modalPictureContainer}>
-              <Pressable style={styles.modalPictureButton} onPress={uploadImage}>
+              <Pressable
+                style={styles.modalPictureButton}
+                onPress={uploadImage}
+                disabled={isWaitingLibrary}
+              >
                 <Ionicons
                   name="images-outline"
                   size={moderateScale(25)}
                   style={styles.modalPictureIcon}
                 />
-                <Text style={styles.modalPictureText}>Choose from library</Text>
+                {isWaitingLibrary ? (
+                  <LoadingDots color={'#000'} size={scale(5)} />
+                ) : (
+                  <Text style={styles.modalPictureText}>Choose from library</Text>
+                )}
               </Pressable>
               <Pressable style={styles.modalPictureButton} onPress={takeImage}>
                 <Ionicons
                   name="camera-outline"
                   size={moderateScale(25)}
                   style={styles.modalPictureIcon}
+                  disabled={isWaitingPhoto}
                 />
-                <Text style={styles.modalPictureText}>Take photo</Text>
+                {isWaitingPhoto ? (
+                  <LoadingDots color={'#000'} size={scale(5)} />
+                ) : (
+                  <Text style={styles.modalPictureText}>Take photo</Text>
+                )}
               </Pressable>
               <Pressable
                 style={styles.modalPictureButton}
@@ -338,7 +378,7 @@ export const SettingsScreen = () => {
   )
 }
 
-export default SettingsScreen
+export default EditProfile
 
 const styles = ScaledSheet.create({
   settings: {
@@ -384,7 +424,7 @@ const styles = ScaledSheet.create({
 
   saveTextDisabled: {
     opacity: 0.4,
-    color: '#000'
+    color: '#000',
   },
 
   main: {
@@ -401,16 +441,16 @@ const styles = ScaledSheet.create({
   },
 
   profileBorder: {
-    width: '111@s',
+    width: '114@s',
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 23,
-    borderWidth: '1.8@s',
+    borderWidth: '1.9@s',
   },
 
   profilePicture: {
-    width: '104.5@s',
+    width: '107@s',
     aspectRatio: 1,
     backgroundColor: '#4c4c4c',
     borderRadius: 20,

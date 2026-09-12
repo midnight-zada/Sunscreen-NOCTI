@@ -27,7 +27,7 @@ export default function ProfileScreen() {
   )
 
   const openSettings = () => {
-    router.push('/settings')
+    router.push('/editProfile')
   }
 
   return (
@@ -92,18 +92,20 @@ export default function ProfileScreen() {
 const styles = ScaledSheet.create({
   profile: {
     flex: 1,
-    paddingInline: '3%',
     backgroundColor: PROFILE_SCREEN_BG_COLOR,
   },
 
   header: {
+    paddingInline: '4%',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
 
   main: {
+    paddingInline: '3%',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: '12@s',
     paddingBlockStart: '20@s',
   },
 
@@ -117,7 +119,7 @@ const styles = ScaledSheet.create({
   },
 
   profilePicture: {
-    width: '98.9@s',
+    width: '98.8@s',
     aspectRatio: 1,
     backgroundColor: '#4c4c4c',
     borderRadius: 20,
@@ -131,7 +133,7 @@ const styles = ScaledSheet.create({
 
   badgeSection: {
     flex: 1,
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -153,6 +155,7 @@ const styles = ScaledSheet.create({
   thirdBadge: {},
 
   profileText: {
+    paddingInline: '3%',
     gap: '5@s',
     paddingBlock: '8@s',
   },
