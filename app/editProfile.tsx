@@ -43,7 +43,7 @@ export const EditProfile = () => {
   const [isLoaded, setIsLoaded] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const [isWaitingLibrary, setIsWaitingLibrary] = useState(true)
+  const [isWaitingLibrary, setIsWaitingLibrary] = useState(false)
   const [isWaitingPhoto, setIsWaitingPhoto] = useState(false)
 
   useEffect(() => {
@@ -288,7 +288,6 @@ export const EditProfile = () => {
         enableDynamicSizing={false}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        onDismiss={() => setSheetMode(null)}
       >
         <BottomSheetView style={styles.sheetContent}>
           <View style={styles.modalHeader}>
