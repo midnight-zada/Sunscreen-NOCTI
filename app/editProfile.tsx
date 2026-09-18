@@ -418,7 +418,7 @@ const styles = ScaledSheet.create({
 
   saveText: {
     fontWeight: 700,
-    color: '#ff2800',
+    color: '#FF2B00',
   },
 
   saveTextDisabled: {

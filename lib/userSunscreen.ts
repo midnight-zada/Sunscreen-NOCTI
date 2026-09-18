@@ -133,6 +133,8 @@ export async function setUserSunscreenFavorite(
     id
   )
 
+  if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
+
   return result.changes
 }
 
@@ -148,4 +150,14 @@ export async function setUserSunscreenArchive(
   )
 
   return result.changes
+}
+
+export function formatDuration(durationMs: number): string {
+  const totalMinutes = Math.round(durationMs / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours === 0) return `${minutes} Min`
+  if (minutes === 0) return `${hours} Hr`
+  return `${hours} Hr ${minutes} Min`
 }

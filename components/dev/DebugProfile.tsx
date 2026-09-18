@@ -104,6 +104,7 @@ export default DebugProfile
 
 const styles = ScaledSheet.create({
   debugSection: {
+    paddingInline: '3%',
     paddingBlock: '30@s',
     gap: '10@s',
   },

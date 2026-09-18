@@ -1,4 +1,5 @@
 import DebugProfile from '@/components/dev/DebugProfile'
+import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import { useAppContext } from '@/context/AppContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getUserProfile, UserProfile } from '@/lib/userProfile'
@@ -173,6 +174,6 @@ const styles = ScaledSheet.create({
   seperator: {
     width: '100%',
     height: '1@s',
-    backgroundColor: '#000'
+    backgroundColor: '#c5c5c5'
   }
 })
