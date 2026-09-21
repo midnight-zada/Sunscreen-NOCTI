@@ -124,7 +124,26 @@ export const getUserSunscreenData = (userId: string): InsertUserSunscreen[] => [
     water_duration: 7200000,
     barcode: '654207702263',
   },
+  {
+    user_id: userId,
+    sunscreen_id: null,
+    nickname: 'Kids Lip & Nose Lip & Nose Lip & Nose',
+    is_favorite: 0,
+    notes:
+      'Say, How you doing? You know Im fine Worried about me, dont waste your time Made my own choices so I can sleep at night No one ever looking out or wanna see me shine So when I walk in this shit, then you know it Im feeling alive, I cant show it, no',
+    image_uri: resolveDevImage(require('@/assets/dev/images/sunscreen_7.jpg')),
+    name: 'Anthelios Melt-in Milk Sunscreen Anthelios Melt-in Milk Sunscreen Anthelios Melt-in Milk Sunscreen',
+    brand: 'La Roche-Posay La Roche-Posay La Roche-Posay',
+    spf: 60,
+    type: 'hybrid',
+    form: 'lotion',
+    coverage: 'body',
+    duration: 7200000,
+    water_duration: 7200000,
+    barcode: '654207702263',
+  },
 ]
+
 
 export const getUserSunscreenPlaceholder = (userId: string): InsertUserSunscreen => {
   return {

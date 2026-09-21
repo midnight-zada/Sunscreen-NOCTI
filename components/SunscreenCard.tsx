@@ -1,53 +1,33 @@
-import { useAppContext } from '@/context/AppContext'
+import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
-import {
-  formatDuration,
-  setUserSunscreenFavorite,
-  UserSunscreen,
-} from '@/lib/userSunscreen'
+import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { memo, useEffect, useState } from 'react'
+import { memo, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { ms, ScaledSheet } from 'react-native-size-matters'
 
 interface SunscreenCardProps {
   sunscreen: UserSunscreen
-  refreshLog: () => Promise<void>
   isFocused: boolean
 }
 
-const SunscreenCard = memo(({ sunscreen, refreshLog, isFocused }: SunscreenCardProps) => {
-  const { db, userId } = useAppContext()
+const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
+  const { toggleFavorite } = useUserSunscreens()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
-  const [isFavorite, setIsFavorite] = useState(sunscreen.is_favorite)
-
-  useEffect(() => {
-    setIsFavorite(sunscreen.is_favorite)
-  }, [sunscreen.is_favorite])
+  const isFavorite = sunscreen.is_favorite === 1
 
   const applySunscreen = async () => {}
 
   const showOptions = () => {}
-
-  const toggleFavorite = async () => {
-    try {
-      const nextFavorite = isFavorite === 0 ? 1 : 0
-      await setUserSunscreenFavorite(db, sunscreen.id, nextFavorite)
-      setIsFavorite(nextFavorite)
-      await refreshLog()
-    } catch (error) {
-      console.error(`${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
 
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: isFocused && PROFILE_SCREEN_BG_COLOR,
+          backgroundColor: isFocused ? PROFILE_SCREEN_BG_COLOR : undefined,
         },
       ]}
     >
@@ -65,7 +45,7 @@ const SunscreenCard = memo(({ sunscreen, refreshLog, isFocused }: SunscreenCardP
             {sunscreen.nickname !== null ? sunscreen.nickname : sunscreen.name}
           </Text>
           <View style={styles.badgeSection}>
-            <Pressable onPress={toggleFavorite} hitSlop={4}>
+            <Pressable onPress={() => toggleFavorite(sunscreen.id)} hitSlop={4}>
               <Ionicons
                 name={isFavorite ? 'star' : 'star-outline'}
                 size={ms(22)}

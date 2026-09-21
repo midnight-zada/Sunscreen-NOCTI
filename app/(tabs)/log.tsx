@@ -1,9 +1,8 @@
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import SunscreenCard from '@/components/SunscreenCard'
-import { useAppContext } from '@/context/AppContext'
+import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
-import { getActiveUserSunscreens, UserSunscreen } from '@/lib/userSunscreen'
-import { useFocusEffect } from 'expo-router'
+import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import { FlatList, Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -11,23 +10,15 @@ import { scale, ScaledSheet } from 'react-native-size-matters'
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets()
-  const { db, userId } = useAppContext()
+  const {
+    userSunscreens,
+    getById,
+    refreshUserSunscreens: refreshLog,
+  } = useUserSunscreens()
 
-  const [focusedSunscreen, setFocusedSunscreen] = useState<UserSunscreen | null>(null)
-  const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[] | null>(null)
-  const [showMoreInfo, setShowMoreInfo] = useState(false)
-
-  const refreshLog = useCallback(async () => {
-    const data = await getActiveUserSunscreens(db)
-
-    setUserSunscreens(data)
-    setFocusedSunscreen((prevFocused) => {
-      if (prevFocused === null) return data[0] ?? null
-
-      const updated = data.find((sunscreen) => sunscreen.id === prevFocused.id)
-      return updated ?? prevFocused
-    })
-  }, [db, userId])
+  const [focusedId, setFocusedId] = useState<string | number | null>(null)
+  const focusedSunscreen =
+    (focusedId !== null ? getById(focusedId) : undefined) ?? userSunscreens[0] ?? null
 
   useFocusEffect(
     useCallback(() => {
@@ -35,80 +26,65 @@ export default function LogScreen() {
     }, [refreshLog])
   )
 
+  const openEditSunscreen = (id: number) => {
+    router.push({ pathname: '/editUserSunscreen', params: { id } })
+  }
+
+  const openMoreInfo = (id: number) => {
+    router.push({ pathname: '/viewUserSunscreen', params: { id } })
+  }
+
   return (
     <View style={[styles.log, { paddingBlockStart: insets.top }]}>
       {focusedSunscreen ? (
         <View style={styles.focusedSection}>
           {focusedSunscreen.nickname === null ? (
             <View style={styles.nameSection}>
-              <Text style={styles.nameText}>{focusedSunscreen.name}</Text>
+              <Text style={styles.nameText} numberOfLines={1}>
+                {focusedSunscreen.name}
+              </Text>
               {focusedSunscreen.brand && (
-                <Text style={[styles.subNameText]}>by {focusedSunscreen.brand}</Text>
+                <Text style={[styles.subNameText]} numberOfLines={2}>
+                  <Text style={styles.by}>by</Text> {focusedSunscreen.brand}
+                </Text>
               )}
             </View>
           ) : (
             <View style={styles.nameSection}>
-              <Text style={styles.nameText}>{focusedSunscreen.nickname}</Text>
+              <Text style={styles.nameText} numberOfLines={1}>
+                {focusedSunscreen.nickname}
+              </Text>
               {focusedSunscreen.brand && (
                 <View style={[styles.subNameSection]}>
-                  <Text style={styles.subNameText}>{focusedSunscreen.name}</Text>
-                  <Text style={{ color: '#5c5c5c' }}>by</Text>
-                  <Text style={styles.subNameText}>{focusedSunscreen.brand}</Text>
+                  <Text style={styles.subNameText} numberOfLines={1}>
+                    {focusedSunscreen.name}{' '}
+                    <Text style={styles.by}>{focusedSunscreen.brand && 'by'}</Text>
+                  </Text>
+                  <Text style={styles.subNameText} numberOfLines={1}>
+                    {focusedSunscreen.brand}
+                  </Text>
                 </View>
               )}
             </View>
           )}
-          <Pressable
-            style={styles.showMoreButton}
-            onPress={() => setShowMoreInfo((prev) => !prev)}
-          >
-            <Text style={styles.showMoreText}>Show More</Text>
-          </Pressable>
-          {/* <View style={styles.focusedMain}>
-            <View style={styles.focusedMainInfo}>
-              <Text style={styles.focusedMainSPF}>SPF {focusedSunscreen.spf}</Text>
-              <View>
-                <Text style={styles.focusedMainHeading}>Duration</Text>
-                <View style={styles.seperator} />
-                <Text style={styles.focusedMainText}>
-                  {formatDuration(focusedSunscreen.duration)}
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.focusedMainHeading}>Water Resistant</Text>
-                <View style={styles.seperator} />
-                <Text style={styles.focusedMainText}>
-                  {focusedSunscreen.water_duration
-                    ? formatDuration(focusedSunscreen.water_duration)
-                    : 'N/A'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.focusedMainInfo}>
-              <View>
-                <Text style={styles.focusedMainHeading}>Type</Text>
-                <View style={styles.seperator} />
-                <Text style={styles.focusedMainText}>
-                  {focusedSunscreen.type ? focusedSunscreen.type : 'N/A'}
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.focusedMainHeading}>Form</Text>
-                <View style={styles.seperator} />
-                <Text style={styles.focusedMainText}>
-                  {focusedSunscreen.form ? focusedSunscreen.form : 'N/A'}
-                  {focusedSunscreen.is_favorite}
-                </Text>
-              </View>
-              <View>
-                <Text style={styles.focusedMainHeading}>Coverage</Text>
-                <View style={styles.seperator} />
-                <Text style={styles.focusedMainText}>
-                  {focusedSunscreen.coverage ? focusedSunscreen.coverage : 'N/A'}
-                </Text>
-              </View>
-            </View>
-          </View> */}
+          <View style={styles.buttonSection}>
+            <Pressable
+              style={styles.editButton}
+              onPress={() => {
+                if (focusedSunscreen) openEditSunscreen(focusedSunscreen.id)
+              }}
+            >
+              <Text style={styles.showMoreText}>Edit</Text>
+            </Pressable>
+            <Pressable
+              style={styles.showMoreButton}
+              onPress={() => {
+                if (focusedSunscreen) openMoreInfo(focusedSunscreen.id)
+              }}
+            >
+              <Text style={styles.showMoreText}>More Info</Text>
+            </Pressable>
+          </View>
         </View>
       ) : (
         <View style={styles.focusedSection}></View>
@@ -116,14 +92,13 @@ export default function LogScreen() {
       <View style={styles.seperator} />
       <FlatList
         style={styles.list}
-        data={userSunscreens ?? []}
+        data={userSunscreens}
         keyExtractor={(value) => value.id.toString()}
         renderItem={({ item }) => (
           <>
-            <Pressable onPress={() => setFocusedSunscreen(item)}>
+            <Pressable onPress={() => setFocusedId(item.id)}>
               <SunscreenCard
                 sunscreen={item}
-                refreshLog={refreshLog}
                 isFocused={focusedSunscreen?.id === item.id}
               />
             </Pressable>
@@ -155,7 +130,7 @@ const styles = ScaledSheet.create({
 
   focusedSection: {
     paddingInline: '3%',
-    minHeight: '114@s',
+    height: '114@s',
     justifyContent: 'flex-end',
     gap: '6@s',
     paddingBlockEnd: '6@s',
@@ -178,6 +153,11 @@ const styles = ScaledSheet.create({
     color: '#5c5c5c',
   },
 
+  by: {
+    fontSize: '16@ms',
+    fontWeight: 400,
+  },
+
   subNameSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -186,50 +166,33 @@ const styles = ScaledSheet.create({
     rowGap: 0,
   },
 
+  buttonSection: {
+    flexDirection: 'row',
+    gap: '10@s',
+  },
+
+  editButton: {
+    flex: 1,
+    paddingBlock: '5@s',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: '2@s',
+    borderColor: '#c5c5c5',
+    borderRadius: 4,
+  },
+
   showMoreButton: {
-    width: '100%',
+    flex: 1,
     paddingBlock: '5@s',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#c5c5c5',
-    borderRadius: 5,
+    borderRadius: 4,
   },
 
   showMoreText: {
     fontSize: '16@ms',
     fontWeight: 500,
-  },
-
-  focusedMain: {
-    flexDirection: 'row',
-  },
-
-  focusedImage: {
-    width: '120@s',
-    aspectRatio: 1,
-    borderRadius: 13,
-  },
-
-  focusedMainInfo: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingInlineEnd: '12@s',
-  },
-
-  focusedMainHeading: {
-    fontSize: '16@ms',
-    fontWeight: 400,
-  },
-
-  focusedMainSPF: {
-    flex: 1,
-    fontSize: '30@ms',
-    fontWeight: 600,
-  },
-
-  focusedMainText: {
-    fontSize: '18@ms',
-    fontWeight: 600,
   },
 
   list: {
