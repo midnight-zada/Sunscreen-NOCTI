@@ -1,4 +1,37 @@
+import { Directory, File, Paths } from 'expo-file-system'
+import {
+  launchCameraAsync,
+  launchImageLibraryAsync,
+  requestCameraPermissionsAsync,
+  requestMediaLibraryPermissionsAsync,
+} from 'expo-image-picker'
 import { SQLiteDatabase } from 'expo-sqlite'
+import { getBorderColor } from './imageColor'
+
+export const TYPE_OPTIONS = [
+  { label: 'None', value: null },
+  { label: 'Chemical', value: 'chemical' },
+  { label: 'Mineral', value: 'mineral' },
+  { label: 'Hybrid', value: 'hybrid' },
+]
+
+export const FORM_OPTIONS = [
+  { label: 'None', value: null },
+  { label: 'Lotion', value: 'lotion' },
+  { label: 'Gel', value: 'gel' },
+  { label: 'Spray', value: 'spray' },
+  { label: 'Stick', value: 'stick' },
+  { label: 'Cream', value: 'cream' },
+]
+
+export const COVERAGE_OPTIONS = [
+  { label: 'None', value: null },
+  { label: 'Face', value: 'face' },
+  { label: 'Body', value: 'body' },
+  { label: 'Lip', value: 'lip' },
+]
+
+export type ImageType = 'cover' | 'product'
 
 export interface UserSunscreen {
   id: number
@@ -9,7 +42,10 @@ export interface UserSunscreen {
   nickname: string | null
   is_favorite: number
   notes: string | null
+  cover_uri: string | null
+  cover_border_color: string | null
   image_uri: string | null
+  border_color: string | null
   is_archived: number
 
   // copied/edited from catalog at insert time
@@ -62,16 +98,19 @@ export async function insertUserSunscreen(
   const result = await db.runAsync(
     /* sql */ `
     INSERT INTO user_sunscreen 
-      (user_id, sunscreen_id, nickname, is_favorite, notes, image_uri, 
-      name, brand, spf, type, form, coverage, duration, water_duration, 
-      barcode, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (user_id, sunscreen_id, nickname, is_favorite, notes, cover_uri, 
+      cover_border_color, image_uri, border_color, name, brand, spf, type, form, 
+      coverage, duration, water_duration, barcode, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     data.user_id,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
     data.is_favorite ?? 0,
     data.notes ?? null,
+    data.cover_uri ?? null,
+    data.cover_border_color ?? null,
     data.image_uri ?? null,
+    data.border_color ?? null,
     data.name,
     data.brand ?? null,
     data.spf,
@@ -90,22 +129,27 @@ export async function insertUserSunscreen(
 
 export async function editUserSunscreen(
   db: SQLiteDatabase,
-  data: UserSunscreen
-): Promise<number> {
+  id: number,
+  data: InsertUserSunscreen
+): Promise<void> {
   const now = new Date().toISOString()
 
   const result = await db.runAsync(
     /* sql */ `
     UPDATE user_sunscreen SET
-      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?,
-      image_uri = ?, name = ?, brand = ?, spf = ?, type = ?, form = ?,
-      coverage = ?, duration = ?, water_duration = ?, barcode = ?, updated_at = ?
+      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?, cover_uri = ?, 
+      cover_border_color = ?, image_uri = ?, border_color = ?, name = ?, brand = ?, 
+      spf = ?, type = ?, form = ?, coverage = ?, duration = ?, water_duration = ?, 
+      barcode = ?, updated_at = ?
     WHERE id = ?`,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
     data.is_favorite,
     data.notes ?? null,
+    data.cover_uri ?? null,
+    data.cover_border_color ?? null,
     data.image_uri ?? null,
+    data.border_color ?? null,
     data.name,
     data.brand ?? null,
     data.spf,
@@ -116,10 +160,10 @@ export async function editUserSunscreen(
     data.water_duration ?? null,
     data.barcode ?? null,
     now,
-    data.id
+    id
   )
 
-  return result.changes
+  if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
 }
 
 export async function setUserSunscreenFavorite(
@@ -160,4 +204,92 @@ export function formatDuration(durationMs: number): string {
   if (hours === 0) return `${minutes} Min`
   if (minutes === 0) return `${hours} Hr`
   return `${hours} Hr ${minutes} Min`
+}
+
+async function stageUserSunscreenImage(
+  uri: string,
+  type: ImageType
+): Promise<[string, string | null] | null> {
+  const dir = new Directory(Paths.document, 'images/user_sunscreen/staged')
+  if (!dir.exists) dir.create({ intermediates: true })
+
+  const dest = new File(dir, `${type}_${Date.now()}.jpg`)
+
+  const source = new File(uri)
+  source.copy(dest)
+
+  const borderColor = await getBorderColor(uri)
+
+  return [dest.uri, borderColor]
+}
+
+export async function pickUserSunscreenImage(
+  type: ImageType
+): Promise<[string, string | null] | null> {
+  const { status } = await requestMediaLibraryPermissionsAsync()
+  if (status !== 'granted') return null
+
+  const result = await launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+  })
+
+  if (result.canceled) return null
+
+  return await stageUserSunscreenImage(result.assets[0].uri, type)
+}
+
+export async function takeUserSunscreenPhoto(
+  type: ImageType
+): Promise<[string, string | null] | null> {
+  const { status } = await requestCameraPermissionsAsync()
+  if (status !== 'granted') return null
+
+  const result = await launchCameraAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+  })
+
+  if (result.canceled) return null
+
+  return await stageUserSunscreenImage(result.assets[0].uri, type)
+}
+
+export async function commitUserSunscreenImage(
+  userSunscreenId: number,
+  stagedUri: string,
+  type: ImageType
+): Promise<string> {
+  const dir = new Directory(Paths.document, 'images/user_sunscreen')
+  if (!dir.exists) dir.create({ intermediates: true })
+
+  const dest = new File(dir, `${userSunscreenId}_${type}.jpg`)
+  if (dest.exists) dest.delete()
+
+  const staged = new File(stagedUri)
+  staged.move(dest)
+
+  return `${dest.uri}?v=${Date.now()}`
+}
+
+export function discardCommittedUserSunscreenImage(
+  userSunscreenId: number,
+  type: ImageType
+): void {
+  const dir = new Directory(Paths.document, 'images/user_sunscreen')
+  const file = new File(dir, `${userSunscreenId}_${type}.jpg`)
+  if (file.exists) file.delete()
+}
+
+export function discardStagedUserSunscreenImage(stagedUri: string): void {
+  try {
+    const file = new File(stagedUri)
+    if (file.exists) file.delete()
+  } catch (error) {
+    console.log(
+      `Failed To Discard Staged Image: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
 }

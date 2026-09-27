@@ -33,9 +33,11 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
     >
       <Image
         source={
-          sunscreen.image_uri
-            ? { uri: sunscreen.image_uri }
-            : require('../assets/images/placeholder.jpg')
+          sunscreen.cover_uri
+            ? { uri: sunscreen.cover_uri }
+            : sunscreen.image_uri
+              ? sunscreen.image_uri
+              : require('../assets/images/placeholder.jpg')
         }
         style={styles.image}
       />

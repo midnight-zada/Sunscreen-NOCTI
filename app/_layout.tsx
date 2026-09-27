@@ -3,9 +3,10 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
+
 import { AppContext, AppContextType } from '../context/AppContext'
 import { UserSunscreenProvider } from '../context/UserSunscreenContext'
-
 import { openDB } from '../lib/db'
 import { getUserId } from '../lib/id'
 
@@ -25,20 +26,22 @@ export default function RootLayout() {
   if (!ctx) return null
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <AppContext.Provider value={ctx}>
-          <UserSunscreenProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="editProfile" />
-              <Stack.Screen name="editUserSunscreen" />
-              <Stack.Screen name="viewUserSunscreen" />
-            </Stack>
-          </UserSunscreenProvider>
-        </AppContext.Provider>
-      </BottomSheetModalProvider>
-    </GestureHandlerRootView>
+    <KeyboardProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <BottomSheetModalProvider>
+          <AppContext.Provider value={ctx}>
+            <UserSunscreenProvider>
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="editProfile" />
+                <Stack.Screen name="editUserSunscreen" />
+                <Stack.Screen name="viewUserSunscreen" />
+              </Stack>
+            </UserSunscreenProvider>
+          </AppContext.Provider>
+        </BottomSheetModalProvider>
+      </GestureHandlerRootView>
+    </KeyboardProvider>
   )
 }

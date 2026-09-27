@@ -1,6 +1,4 @@
-import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { Directory, File, Paths } from 'expo-file-system'
-import { ImageManipulator } from 'expo-image-manipulator'
 import {
   launchCameraAsync,
   launchImageLibraryAsync,
@@ -8,17 +6,7 @@ import {
   requestMediaLibraryPermissionsAsync,
 } from 'expo-image-picker'
 import { SQLiteDatabase } from 'expo-sqlite'
-import { getColors } from 'react-native-image-colors'
-import {
-  colorDistance,
-  getImageSize,
-  getLuminance,
-  hexToRGB,
-  RGB,
-  rgbToHex,
-} from './imageColor'
-
-import type { ImageRef } from 'expo-image-manipulator'
+import { getBorderColor } from './imageColor'
 
 export interface UserProfile {
   user_id: string
@@ -149,114 +137,6 @@ export async function setProfileImage(
   )
 }
 
-const EDGE_STRIP_FRACTION = 0.1 // 0-1
-const WHITE_EDGE_THRESHOLD = 200 // 0-255
-const DARK_EDGE_THRESHOLD = 70 // 0-255
-const COLOR_DISTANCE = 44 // 0-442
-
-type Crop = { originX: number; originY: number; width: number; height: number }
-type Clusters = { samples: RGB[]; centroid: RGB }
-
-async function sampleBorder(uri: string, crop: Crop): Promise<RGB | null> {
-  let croppedURI: string | undefined
-  let image: ImageRef | undefined
-
-  try {
-    image = await ImageManipulator.manipulate(uri).crop(crop).renderAsync()
-    const saved = await image.saveAsync()
-    croppedURI = saved.uri
-
-    const result = await getColors(croppedURI, {
-      fallback: PROFILE_SCREEN_BG_COLOR,
-    })
-
-    const color =
-      result.platform === 'ios'
-        ? result.background
-        : result.platform === 'android' || result.platform === 'web'
-          ? result.dominant
-          : null
-
-    return color ? hexToRGB(color) : null
-  } catch (error) {
-    console.log(
-      `Error: ${error instanceof Error ? error.message : String(error)} in sampling edge ${JSON.stringify(crop)}`
-    )
-    return null
-  } finally {
-    image?.release()
-    if (croppedURI) new File(croppedURI).delete()
-  }
-}
-
-function clusterSamples(samples: RGB[]): RGB[][] {
-  const clusters: Clusters[] = []
-
-  for (const s of samples) {
-    const cluster = clusters.find((c) => colorDistance(c.centroid, s) <= COLOR_DISTANCE)
-
-    if (cluster) {
-      const count = cluster.samples.length
-      cluster.centroid = cluster.centroid.map(
-        (v, i) => (v * count + s[i]) / (count + 1)
-      ) as RGB
-      cluster.samples.push(s)
-    } else {
-      clusters.push({ samples: [s], centroid: s })
-    }
-  }
-
-  return clusters.map((c) => c.samples)
-}
-
-async function getBorderColor(uri: string): Promise<string | null> {
-  try {
-    const { width, height } = await getImageSize(uri)
-    const cropWidth = Math.max(1, Math.round(width * EDGE_STRIP_FRACTION))
-    const cropHeight = Math.max(1, Math.round(height * EDGE_STRIP_FRACTION))
-
-    const borderCrops: Crop[] = [
-      { originX: 0, originY: 0, width, height: cropHeight },
-      { originX: 0, originY: height - cropHeight, width, height: cropHeight },
-      { originX: 0, originY: 0, width: cropWidth, height },
-      { originX: width - cropWidth, originY: 0, width: cropWidth, height },
-    ]
-
-    let borderSamples = (
-      await Promise.all(borderCrops.map((crop) => sampleBorder(uri, crop)))
-    ).filter((sample) => sample !== null)
-
-    if (borderSamples.length === 0) return null
-
-    const brightest = borderSamples.reduce((a, b) =>
-      getLuminance(b) > getLuminance(a) ? b : a
-    )
-    const darkest = borderSamples.reduce((a, b) =>
-      getLuminance(b) < getLuminance(a) ? b : a
-    )
-
-    if (borderSamples.length > 1 && getLuminance(brightest) >= WHITE_EDGE_THRESHOLD)
-      borderSamples = borderSamples.filter((sample) => sample !== brightest)
-
-    if (borderSamples.length > 1 && getLuminance(darkest) <= DARK_EDGE_THRESHOLD)
-      borderSamples = borderSamples.filter((sample) => sample !== darkest)
-
-    const clusters = clusterSamples(borderSamples)
-    const mainCluster = clusters.reduce((a, b) => (b.length > a.length ? b : a))
-    const blended = mainCluster.reduce<RGB>(
-      (acc, rgb) => acc.map((channel, i) => channel + rgb[i] / mainCluster.length) as RGB,
-      [0, 0, 0]
-    )
-
-    return rgbToHex(blended)
-  } catch (error) {
-    console.log(
-      `Error: ${error instanceof Error ? error.message : String(error)} in getBorderColor`
-    )
-    return null
-  }
-}
-
 async function saveProfileImage(
   uri: string,
   userId: string
@@ -308,4 +188,3 @@ export async function takeProfilePhoto(
 
   return await saveProfileImage(result.assets[0].uri, userId)
 }
-

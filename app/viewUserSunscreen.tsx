@@ -1,6 +1,5 @@
 import ErrorScreen from '@/components/ErrorScreen'
 import Separator from '@/components/Separator'
-import { useAppContext } from '@/context/AppContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import { MAIN_BACKGROUND, PROFILE_ICON, PROFILE_TEXT, SEPARATOR } from '@/lib/constants'
 import { formatDuration } from '@/lib/userSunscreen'
@@ -18,7 +17,12 @@ const INFO_SEPARATOR_GRADIENT = {
   locations: [0, 0.7, 1],
 } as const
 
-const editUserSunscreen = () => {
+const IMAGE_HEADER_GRADIENT = {
+  colors: [MAIN_BACKGROUND, SEPARATOR, SEPARATOR, MAIN_BACKGROUND],
+  locations: [0, 0.15, 0.85, 1],
+} as const
+
+const ViewUserSunscreen = () => {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
   const sunscreenId = Number(id)
@@ -27,7 +31,7 @@ const editUserSunscreen = () => {
   const sunscreen = getById(sunscreenId)
   const isFavorite = sunscreen?.is_favorite === 1
 
-  const cancelEdit = () => {
+  const returnBack = () => {
     router.back()
   }
 
@@ -46,7 +50,7 @@ const editUserSunscreen = () => {
     >
       <View style={styles.header}>
         <View style={[styles.headerItem, { alignItems: 'flex-start' }]}>
-          <Pressable onPress={cancelEdit} hitSlop={10}>
+          <Pressable onPress={returnBack} hitSlop={10}>
             <Ionicons
               name="chevron-back"
               size={ms(26)}
@@ -112,11 +116,22 @@ const editUserSunscreen = () => {
           <Separator />
           <View style={styles.imageSection}>
             <View style={styles.imageContainer}>
-              <View style={styles.imageBorder}>
+              <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
+              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
+              <View
+                style={[
+                  styles.imageBorder,
+                  {
+                    borderColor: sunscreen.cover_border_color
+                      ? sunscreen.cover_border_color
+                      : SEPARATOR,
+                  },
+                ]}
+              >
                 <Image
                   source={
-                    sunscreen.image_uri
-                      ? { uri: sunscreen.image_uri }
+                    sunscreen.cover_uri
+                      ? { uri: sunscreen.cover_uri }
                       : require('../assets/images/placeholder.jpg')
                   }
                   style={styles.image}
@@ -124,7 +139,18 @@ const editUserSunscreen = () => {
               </View>
             </View>
             <View style={styles.imageContainer}>
-              <View style={styles.imageBorder}>
+              <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
+              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
+              <View
+                style={[
+                  styles.imageBorder,
+                  {
+                    borderColor: sunscreen.border_color
+                      ? sunscreen.border_color
+                      : SEPARATOR,
+                  },
+                ]}
+              >
                 <Image
                   source={
                     sunscreen.image_uri
@@ -163,26 +189,30 @@ const editUserSunscreen = () => {
               <View style={styles.infoRow}>
                 <Text style={styles.infoKey}>Type</Text>
                 <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <Text style={styles.infoValue}>Lotion</Text>
+                <Text style={styles.infoValue}>
+                  {sunscreen.type ? sunscreen.type : 'N/A'}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoKey}>Form</Text>
                 <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <Text style={styles.infoValue}>Lotion</Text>
+                <Text style={styles.infoValue}>
+                  {sunscreen.form ? sunscreen.form : 'N/A'}
+                </Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoKey}>Coverage</Text>
                 <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <Text style={styles.infoValue}>Lotion</Text>
+                <Text style={styles.infoValue}>
+                  {sunscreen.coverage ? sunscreen.coverage : 'N/A'}
+                </Text>
               </View>
             </View>
           </View>
           <View style={[styles.notes, styles.infoRow]}>
             <Text style={styles.infoKey}>Notes</Text>
             <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-            <Text style={styles.infoValue}>
-              {sunscreen.notes ? sunscreen.notes : 'N/A'}
-            </Text>
+            <Text style={styles.infoValue}>{sunscreen?.notes}</Text>
           </View>
         </ScrollView>
       ) : (
@@ -200,7 +230,7 @@ const editUserSunscreen = () => {
   )
 }
 
-export default editUserSunscreen
+export default ViewUserSunscreen
 
 const styles = ScaledSheet.create({
   editUserSunscreen: {
@@ -271,30 +301,32 @@ const styles = ScaledSheet.create({
 
   imageSection: {
     paddingInline: '3%',
-    paddingBlock: '15@s',
+    paddingBlockStart: '10@s',
+    paddingBlockEnd: '14@s',
     flexDirection: 'row',
+    justifyContent: 'space-evenly',
     gap: '10@s',
   },
 
-  imageContainer: {
-    flex: 1,
+  imageContainer: {},
+
+  imageHeaderText: {
+    textAlign: 'center',
   },
 
   imageBorder: {
-    width: '135@s',
+    width: '136@s',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: '2@s',
-    borderColor: '#fff',
-    borderRadius: 25,
+    borderRadius: 32,
   },
 
   image: {
-    width: '125@s',
-    backgroundColor: PROFILE_TEXT,
+    width: '126@s',
     aspectRatio: 1,
-    borderRadius: 20,
+    borderRadius: 27,
   },
 
   infoSection: {

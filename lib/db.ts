@@ -60,7 +60,10 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       nickname TEXT,
       is_favorite INTEGER NOT NULL DEFAULT 0,
       notes TEXT,
+      cover_uri TEXT,
+      cover_border_color TEXT,
       image_uri TEXT,                   -- user's own photo/library pick only
+      border_color TEXT,
       is_archived INTEGER NOT NULL DEFAULT 0,
 
       -- copied from sunscreen at save time
