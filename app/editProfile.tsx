@@ -1,3 +1,4 @@
+import ImageViewer from '@/components/ImageViewer'
 import { LoadingDots } from '@/components/LoadingDots'
 import { useAppContext } from '@/context/AppContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
@@ -45,6 +46,8 @@ export const EditProfile = () => {
 
   const [isWaitingLibrary, setIsWaitingLibrary] = useState(false)
   const [isWaitingPhoto, setIsWaitingPhoto] = useState(false)
+
+  const [isImageFocused, setIsImageFocused] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -190,13 +193,14 @@ export const EditProfile = () => {
       <View style={styles.seperator} />
       <View style={styles.main}>
         <View style={styles.profileImageSection}>
-          <View
+          <Pressable
             style={[
               styles.profileBorder,
               {
                 borderColor: borderColor || 'transparent',
               },
             ]}
+            onPress={() => setIsImageFocused(true)}
           >
             <View style={[styles.profilePicture]}>
               <Image
@@ -208,7 +212,7 @@ export const EditProfile = () => {
                 style={styles.profileImage}
               />
             </View>
-          </View>
+          </Pressable>
           <View style={styles.rightSection}>
             <View
               style={[
@@ -373,6 +377,11 @@ export const EditProfile = () => {
           )}
         </BottomSheetView>
       </BottomSheetModal>
+      <ImageViewer
+        isFocused={isImageFocused}
+        setIsFocused={setIsImageFocused}
+        source={profileURI}
+      />
     </View>
   )
 }

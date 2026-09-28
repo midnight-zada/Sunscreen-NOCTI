@@ -1,12 +1,20 @@
 import ErrorScreen from '@/components/ErrorScreen'
+import ImageViewer from '@/components/ImageViewer'
 import Separator from '@/components/Separator'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
-import { MAIN_BACKGROUND, PROFILE_ICON, PROFILE_TEXT, SEPARATOR } from '@/lib/constants'
-import { formatDuration } from '@/lib/userSunscreen'
+import {
+  MAIN_BACKGROUND,
+  PLACEHOLDER_BG,
+  PROFILE_ICON,
+  PROFILE_TEXT,
+  SEPARATOR,
+} from '@/lib/constants'
+import { formatDuration, ImageType } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
+import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,6 +36,9 @@ const ViewUserSunscreen = () => {
   const sunscreenId = Number(id)
   const { getById, toggleFavorite } = useUserSunscreens()
 
+  const [focusImageSource, setFocuseImageSource] = useState<string | null>(null)
+  const [isImageFocused, setIsImageFocused] = useState(false)
+
   const sunscreen = getById(sunscreenId)
   const isFavorite = sunscreen?.is_favorite === 1
 
@@ -37,6 +48,13 @@ const ViewUserSunscreen = () => {
 
   const editSunscreen = () => {
     router.push({ pathname: '/editUserSunscreen', params: { id } })
+  }
+
+  const focuseImage = (type: ImageType) => {
+    if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
+    else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
+
+    setIsImageFocused(true)
   }
 
   return (
@@ -118,15 +136,16 @@ const ViewUserSunscreen = () => {
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
               <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
-              <View
+              <Pressable
                 style={[
                   styles.imageBorder,
                   {
                     borderColor: sunscreen.cover_border_color
                       ? sunscreen.cover_border_color
-                      : SEPARATOR,
+                      : PLACEHOLDER_BG,
                   },
                 ]}
+                onPress={() => focuseImage('cover')}
               >
                 <Image
                   source={
@@ -136,20 +155,21 @@ const ViewUserSunscreen = () => {
                   }
                   style={styles.image}
                 />
-              </View>
+              </Pressable>
             </View>
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
               <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
-              <View
+              <Pressable
                 style={[
                   styles.imageBorder,
                   {
                     borderColor: sunscreen.border_color
                       ? sunscreen.border_color
-                      : SEPARATOR,
+                      : PLACEHOLDER_BG,
                   },
                 ]}
+                onPress={() => focuseImage('product')}
               >
                 <Image
                   source={
@@ -159,7 +179,7 @@ const ViewUserSunscreen = () => {
                   }
                   style={styles.image}
                 />
-              </View>
+              </Pressable>
             </View>
           </View>
           <Separator />
@@ -226,6 +246,11 @@ const ViewUserSunscreen = () => {
           </Text>
         </View>
       )}
+      <ImageViewer
+        isFocused={isImageFocused}
+        setIsFocused={setIsImageFocused}
+        source={focusImageSource}
+      />
     </View>
   )
 }

@@ -1,10 +1,17 @@
 import DropInput from '@/components/DropInput'
 import ErrorScreen from '@/components/ErrorScreen'
+import ImageViewer from '@/components/ImageViewer'
 import LoadingDots from '@/components/LoadingDots'
 import Separator from '@/components/Separator'
 import { useAppContext } from '@/context/AppContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
-import { MAIN_BACKGROUND, PROFILE_ICON, PROFILE_TEXT, SEPARATOR } from '@/lib/constants'
+import {
+  MAIN_BACKGROUND,
+  PLACEHOLDER_BG,
+  PROFILE_ICON,
+  PROFILE_TEXT,
+  SEPARATOR,
+} from '@/lib/constants'
 import {
   commitUserSunscreenImage,
   COVERAGE_OPTIONS,
@@ -70,6 +77,9 @@ const EditUserSunscreen = () => {
   const stagedImages = useRef<Partial<Record<ImageType, string>>>({})
   const removedImages = useRef<Set<ImageType>>(new Set())
 
+  const [focusImageSource, setFocuseImageSource] = useState<string | null>(null)
+  const [isImageFocused, setIsImageFocused] = useState(false)
+
   const discardAllStagedImages = useCallback(() => {
     for (const uri of Object.values(stagedImages.current)) {
       if (uri) discardStagedUserSunscreenImage(uri)
@@ -103,11 +113,11 @@ const EditUserSunscreen = () => {
     const errors: string[] = []
 
     if (!sunscreen.spf || sunscreen.spf <= 0) {
-      errors.push("SPF must be greater than 0")
+      errors.push('SPF must be greater than 0')
     }
 
     if (!sunscreen.duration || sunscreen.duration <= 0) {
-      errors.push("Duration must be greater than 0")
+      errors.push('Duration must be greater than 0')
     }
 
     return errors
@@ -119,7 +129,7 @@ const EditUserSunscreen = () => {
         let confirmEditSunscreen = editSunscreen
 
         const fieldErrors = getFieldErrors(confirmEditSunscreen)
-        
+
         if (fieldErrors.length > 0) {
           await notificationAsync(NotificationFeedbackType.Error)
           Alert.alert('Invalid Input(s)', fieldErrors.join('\n'))
@@ -158,6 +168,13 @@ const EditUserSunscreen = () => {
         `Failed To Confirm Edit: ${error instanceof Error ? error.message : String(error)}`
       )
     }
+  }
+
+  const focuseImage = (type: ImageType) => {
+    if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
+    else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
+
+    setIsImageFocused(true)
   }
 
   const editProductImage = async () => {
@@ -361,15 +378,16 @@ const EditUserSunscreen = () => {
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
               <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
-              <View
+              <Pressable
                 style={[
                   styles.imageBorder,
                   {
                     borderColor: editSunscreen.cover_border_color
                       ? editSunscreen.cover_border_color
-                      : SEPARATOR,
+                      : PLACEHOLDER_BG,
                   },
                 ]}
+                onPress={() => focuseImage('cover')}
               >
                 <Image
                   source={
@@ -379,7 +397,7 @@ const EditUserSunscreen = () => {
                   }
                   style={styles.image}
                 />
-              </View>
+              </Pressable>
               <Pressable style={styles.editButton} onPress={editCoverImage}>
                 <Text style={styles.editText}>Edit</Text>
                 <Ionicons name="create-outline" size={ms(16)} color={PROFILE_TEXT} />
@@ -388,15 +406,16 @@ const EditUserSunscreen = () => {
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
               <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
-              <View
+              <Pressable
                 style={[
                   styles.imageBorder,
                   {
                     borderColor: editSunscreen.border_color
                       ? editSunscreen.border_color
-                      : SEPARATOR,
+                      : PLACEHOLDER_BG,
                   },
                 ]}
+                onPress={() => focuseImage('product')}
               >
                 <Image
                   source={
@@ -406,7 +425,7 @@ const EditUserSunscreen = () => {
                   }
                   style={styles.image}
                 />
-              </View>
+              </Pressable>
               <Pressable style={styles.editButton} onPress={editProductImage}>
                 <Text style={styles.editText}>Edit</Text>
                 <Ionicons name="create-outline" size={ms(16)} color={PROFILE_TEXT} />
@@ -598,10 +617,7 @@ const EditUserSunscreen = () => {
                   <Text style={styles.modalPictureText}>Take photo</Text>
                 )}
               </Pressable>
-              <Pressable
-                style={styles.modalPictureButton}
-                onPress={removeImage}
-              >
+              <Pressable style={styles.modalPictureButton} onPress={removeImage}>
                 <Ionicons
                   name="trash-outline"
                   size={moderateScale(25)}
@@ -620,6 +636,11 @@ const EditUserSunscreen = () => {
           )}
         </BottomSheetView>
       </BottomSheetModal>
+      <ImageViewer
+        isFocused={isImageFocused}
+        setIsFocused={setIsImageFocused}
+        source={focusImageSource}
+      />
     </View>
   )
 }

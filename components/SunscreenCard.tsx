@@ -1,11 +1,12 @@
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
-import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
+import { PLACEHOLDER_BG, PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { memo, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { Dimensions, Pressable, Text, View } from 'react-native'
 import { ms, ScaledSheet } from 'react-native-size-matters'
+import ImageViewer from './ImageViewer'
 
 interface SunscreenCardProps {
   sunscreen: UserSunscreen
@@ -16,11 +17,14 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const { toggleFavorite } = useUserSunscreens()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
+  const [isImageFocused, setIsImageFocused] = useState(false)
   const isFavorite = sunscreen.is_favorite === 1
 
   const applySunscreen = async () => {}
 
   const showOptions = () => {}
+
+  const imageSource = sunscreen.cover_uri ? sunscreen.cover_uri : sunscreen.image_uri
 
   return (
     <View
@@ -31,16 +35,24 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         },
       ]}
     >
-      <Image
-        source={
-          sunscreen.cover_uri
-            ? { uri: sunscreen.cover_uri }
-            : sunscreen.image_uri
-              ? sunscreen.image_uri
-              : require('../assets/images/placeholder.jpg')
-        }
-        style={styles.image}
-      />
+      <Pressable
+        style={[
+          styles.imageBorder,
+          {
+            borderColor: sunscreen.cover_border_color
+              ? sunscreen.cover_border_color
+              : sunscreen.border_color
+                ? sunscreen.border_color
+                : PLACEHOLDER_BG,
+          },
+        ]}
+        onPress={() => setIsImageFocused(true)}
+      >
+        <Image
+          source={imageSource ? imageSource : require('../assets/images/placeholder.jpg')}
+          style={styles.image}
+        />
+      </Pressable>
       <View style={styles.infoSection}>
         <View style={styles.headerSection}>
           <Text style={styles.nameText} numberOfLines={1}>
@@ -143,6 +155,11 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
           </View>
         </View>
       </View>
+      <ImageViewer
+        isFocused={isImageFocused}
+        setIsFocused={setIsImageFocused}
+        source={imageSource}
+      />
     </View>
   )
 })
@@ -156,14 +173,22 @@ const styles = ScaledSheet.create({
     paddingBlock: '6@s',
   },
 
-  image: {
+  imageBorder: {
+    marginInlineStart: '10@s',
     width: '105@s',
     aspectRatio: 1,
-    borderRadius: 10,
-    marginInlineStart: '10@s',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 23,
+    borderWidth: '1.8@s',
+  },
+
+  image: {
+    width: '99@s',
+    aspectRatio: 1,
     backgroundColor: '#fff',
-    borderColor: '#c5c5c5',
-    borderWidth: 2,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 
   infoSection: {

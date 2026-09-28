@@ -1,5 +1,5 @@
 import DebugProfile from '@/components/dev/DebugProfile'
-import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
+import ImageViewer from '@/components/ImageViewer'
 import { useAppContext } from '@/context/AppContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getUserProfile, UserProfile } from '@/lib/userProfile'
@@ -15,6 +15,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets()
   const { db, userId } = useAppContext()
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
+
+  const [isImageFocused, setIsImageFocused] = useState(false)
 
   const refreshProfile = useCallback(async () => {
     const data = await getUserProfile(db, userId)
@@ -49,13 +51,14 @@ export default function ProfileScreen() {
         </Pressable>
       </View>
       <View style={[styles.main]}>
-        <View
+        <Pressable
           style={[
             styles.profileBorder,
             {
               borderColor: profileData?.image_border_color || 'transparent',
             },
           ]}
+          onPress={() => setIsImageFocused(true)}
         >
           <View style={[styles.profilePicture]}>
             <Image
@@ -67,7 +70,7 @@ export default function ProfileScreen() {
               style={styles.profileImage}
             />
           </View>
-        </View>
+        </Pressable>
         <View style={[styles.badgeSection]}>
           <View style={[styles.badge, styles.firstBadge]}>
             <Ionicons name="help-outline" size={moderateScale(40)} color="#222" />
@@ -86,6 +89,11 @@ export default function ProfileScreen() {
       </View>
       <View style={styles.seperator} />
       <DebugProfile refreshProfile={refreshProfile} />
+      <ImageViewer
+        isFocused={isImageFocused}
+        setIsFocused={setIsImageFocused}
+        source={profileData ? profileData.profile_image_uri : null}
+      />
     </View>
   )
 }
@@ -174,6 +182,6 @@ const styles = ScaledSheet.create({
   seperator: {
     width: '100%',
     height: '1@s',
-    backgroundColor: '#c5c5c5'
-  }
+    backgroundColor: '#c5c5c5',
+  },
 })
