@@ -26,3 +26,9 @@ export const PROFILE_ICON = '#A2A9B4'
 export const RED_ORANGE = '#FF2B00'
 export const SEPARATOR = '#3d4043'
 export const PLACEHOLDER_BG = '#F0F2F3'
+
+export const MODAL_BUTTONS = '#2B3035'
+export const MODAL_BG = HEADER_SECONDARY
+
+export const SUN_COLOR = '#FFE100'
+export const WATER_COLOR = '#007bff'

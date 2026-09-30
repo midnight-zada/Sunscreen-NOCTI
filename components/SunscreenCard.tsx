@@ -1,12 +1,32 @@
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
-import { PLACEHOLDER_BG, PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
+import {
+  MAIN_BACKGROUND,
+  MODAL_BG,
+  MODAL_BUTTONS,
+  PLACEHOLDER_BG,
+  PROFILE_ICON,
+  PROFILE_TEXT,
+  SEPARATOR,
+  SUN_COLOR,
+  WATER_COLOR,
+} from '@/lib/constants'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
+import {
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet'
 import { Image } from 'expo-image'
-import { memo, useState } from 'react'
-import { Dimensions, Pressable, Text, View } from 'react-native'
+import { router } from 'expo-router'
+import { memo, useCallback, useRef, useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
+import Button from './Button'
 import ImageViewer from './ImageViewer'
+import Separator from './Separator'
 
 interface SunscreenCardProps {
   sunscreen: UserSunscreen
@@ -14,7 +34,8 @@ interface SunscreenCardProps {
 }
 
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
-  const { toggleFavorite } = useUserSunscreens()
+  const insets = useSafeAreaInsets()
+  const { toggleFavorite, archiveUserSunscreen } = useUserSunscreens()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
   const [isImageFocused, setIsImageFocused] = useState(false)
@@ -22,16 +43,23 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
 
   const applySunscreen = async () => {}
 
-  const showOptions = () => {}
-
   const imageSource = sunscreen.cover_uri ? sunscreen.cover_uri : sunscreen.image_uri
+
+  const optionSheetRef = useRef<BottomSheetModal>(null)
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+    ),
+    []
+  )
 
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: isFocused ? PROFILE_SCREEN_BG_COLOR : undefined,
+          backgroundColor: isFocused ? MAIN_BACKGROUND : undefined,
         },
       ]}
     >
@@ -63,11 +91,15 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               <Ionicons
                 name={isFavorite ? 'star' : 'star-outline'}
                 size={ms(22)}
-                color={isFavorite ? '#ffed4c' : '#9a9a9a'}
+                color={isFavorite ? '#ffed4c' : PROFILE_ICON}
               />
             </Pressable>
-            <Pressable onPress={showOptions} hitSlop={4}>
-              <Ionicons name="ellipsis-vertical-outline" size={ms(22)} color="#9a9a9a" />
+            <Pressable onPress={() => optionSheetRef.current?.present()} hitSlop={4}>
+              <Ionicons
+                name="ellipsis-vertical-outline"
+                size={ms(22)}
+                color={PROFILE_ICON}
+              />
             </Pressable>
           </View>
         </View>
@@ -102,56 +134,45 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             </Text>
           </View>
           <View style={styles.buttonSection}>
-            <Pressable
-              style={[
-                styles.button,
-                styles.toggleButton,
-                {
-                  backgroundColor: isFocused ? '#ececec' : PROFILE_SCREEN_BG_COLOR,
-                },
-              ]}
+            <Button
+              style={[styles.button, styles.toggleButton]}
               onPress={() => {
                 if (sunscreen.water_duration !== null)
                   setIsWaterApplication(!isWaterApplication)
               }}
             >
-              <Ionicons
-                name="sunny-outline"
-                size={ms(22)}
-                style={{
-                  opacity:
-                    !isWaterApplication && sunscreen.water_duration !== null ? 1 : 0.4,
-                }}
-                color="#1f1f1f"
-              />
-              <View
-                style={[
-                  styles.toggleDivider,
-                  { opacity: sunscreen.water_duration !== null ? 1 : 0.4 },
-                ]}
-              />
-              <Ionicons
-                name="water-outline"
-                size={ms(22)}
-                style={{
-                  opacity:
-                    isWaterApplication && sunscreen.water_duration !== null ? 1 : 0.4,
-                }}
-                color="#1f1f1f"
-              />
-            </Pressable>
-            <Pressable
-              style={[
-                styles.button,
-                styles.applyButton,
-                {
-                  backgroundColor: isFocused ? '#ececec' : PROFILE_SCREEN_BG_COLOR,
-                },
-              ]}
-              onPress={applySunscreen}
-            >
+              {sunscreen.water_duration ? (
+                <>
+                  <Ionicons
+                    name="sunny-outline"
+                    size={ms(22)}
+                    style={{
+                      opacity: !isWaterApplication ? 1 : 0.4,
+                    }}
+                    color={ !isWaterApplication ? SUN_COLOR : PROFILE_TEXT}
+                  />
+                  <View
+                    style={[
+                      styles.toggleDivider,
+                      { opacity: sunscreen.water_duration !== null ? 1 : 0.4 },
+                    ]}
+                  />
+                  <Ionicons
+                    name="water-outline"
+                    size={ms(22)}
+                    style={{
+                      opacity: isWaterApplication ? 1 : 0.4,
+                    }}
+                    color={isWaterApplication ? WATER_COLOR : PROFILE_TEXT}
+                  />
+                </>
+              ) : (
+                <Ionicons name="sunny-outline" size={ms(22)} color={SUN_COLOR} />
+              )}
+            </Button>
+            <Button style={[styles.button, styles.applyButton]} onPress={applySunscreen}>
               <Text style={styles.applyText}>Apply</Text>
-            </Pressable>
+            </Button>
           </View>
         </View>
       </View>
@@ -160,6 +181,77 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         setIsFocused={setIsImageFocused}
         source={imageSource}
       />
+      <BottomSheetModal
+        ref={optionSheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.optionSheetBackground}
+        handleIndicatorStyle={styles.optionSheetHandle}
+      >
+        <BottomSheetView
+          style={[
+            styles.optionButtonSection,
+            {
+              paddingBlockStart: 5,
+              paddingBlockEnd: insets.bottom,
+            },
+          ]}
+        >
+          <View style={styles.sunscreenOptionSunscreen}>
+            <Pressable
+              style={styles.sunscreenOption}
+              onPress={() => {
+                router.push({
+                  pathname: '/viewUserSunscreen',
+                  params: { id: sunscreen.id },
+                })
+                optionSheetRef.current?.dismiss()
+              }}
+            >
+              <Text style={styles.optionText}>More Info</Text>
+            </Pressable>
+            <Separator />
+            <Pressable style={styles.sunscreenOption}>
+              <Text style={styles.optionText}>Activity</Text>
+            </Pressable>
+          </View>
+          <View style={styles.sunscreenOptionSunscreen}>
+            <Pressable style={styles.sunscreenOption}>
+              <Text style={styles.optionText}>Duplicate</Text>
+            </Pressable>
+            <Separator />
+            <Pressable
+              style={styles.sunscreenOption}
+              onPress={() => {
+                router.push({
+                  pathname: '/editUserSunscreen',
+                  params: { id: sunscreen.id },
+                })
+                optionSheetRef.current?.dismiss()
+              }}
+            >
+              <Text style={styles.optionText}>Edit</Text>
+            </Pressable>
+            <Separator />
+            <Pressable
+              style={styles.sunscreenOption}
+              onPress={() => {
+                archiveUserSunscreen(sunscreen.id)
+                optionSheetRef.current?.dismiss()
+              }}
+            >
+              <Text style={styles.optionText}>Delete</Text>
+            </Pressable>
+          </View>
+          <Pressable
+            style={[styles.option, styles.optionCancel]}
+            onPress={() => optionSheetRef.current?.dismiss()}
+          >
+            <Text style={styles.optionText}>Cancel</Text>
+          </Pressable>
+        </BottomSheetView>
+      </BottomSheetModal>
     </View>
   )
 })
@@ -179,14 +271,13 @@ const styles = ScaledSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 23,
+    borderRadius: 24,
     borderWidth: '1.8@s',
   },
 
   image: {
-    width: '99@s',
+    width: '97@s',
     aspectRatio: 1,
-    backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
   },
@@ -206,7 +297,7 @@ const styles = ScaledSheet.create({
   nameText: {
     flex: 1,
     fontSize: '18@ms',
-    color: '#1f1f1f',
+    color: PROFILE_TEXT,
     fontWeight: 600,
   },
 
@@ -219,10 +310,10 @@ const styles = ScaledSheet.create({
 
   seperator: {
     width: '100%',
-    height: 2,
+    height: StyleSheet.hairlineWidth,
     marginBlockStart: '6@s',
     marginBlockEnd: '4@s',
-    backgroundColor: '#c5c5c5',
+    backgroundColor: SEPARATOR,
     marginInlineEnd: '-3%',
   },
 
@@ -244,13 +335,13 @@ const styles = ScaledSheet.create({
   pinText: {
     fontSize: '14@ms',
     fontWeight: 600,
-    color: '#1f1f1f',
+    color: PROFILE_TEXT,
   },
 
   pinSeparator: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     width: '100%',
-    backgroundColor: '#c5c5c5',
+    backgroundColor: SEPARATOR,
   },
 
   buttonSection: {
@@ -263,17 +354,10 @@ const styles = ScaledSheet.create({
   button: {
     flex: 1,
     width: '100%',
-    borderRadius: '8@ms',
-    backgroundColor: PROFILE_SCREEN_BG_COLOR,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingInline: '10@s',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 1,
-    elevation: 2,
   },
 
   toggleButton: {
@@ -292,9 +376,53 @@ const styles = ScaledSheet.create({
   },
 
   applyText: {
-    fontSize: '18@ms',
-    fontWeight: 600,
+    fontSize: '16@ms',
+    fontWeight: 500,
     textAlign: 'center',
-    color: '#1f1f1f',
+    color: PROFILE_TEXT,
+  },
+
+  option: {},
+
+  optionSheetBackground: {
+    backgroundColor: MODAL_BG,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+
+  optionSheetHandle: {
+    width: '11%',
+    height: '2@s',
+    backgroundColor: PROFILE_TEXT,
+  },
+
+  optionButtonSection: {
+    backgroundColor: MODAL_BG,
+    gap: '10@s',
+  },
+
+  sunscreenOptionSunscreen: {
+    marginInline: '3%',
+    backgroundColor: MODAL_BUTTONS,
+    borderRadius: 12,
+  },
+
+  sunscreenOption: {
+    paddingBlock: '12@s',
+  },
+
+  optionCancel: {
+    marginInline: '3%',
+    paddingBlock: '12@s',
+    backgroundColor: MODAL_BUTTONS,
+    borderRadius: 12,
+  },
+
+  optionText: {
+    fontSize: '15@ms',
+    fontWeight: 500,
+    color: PROFILE_TEXT,
+    width: '100%',
+    textAlign: 'center',
   },
 })

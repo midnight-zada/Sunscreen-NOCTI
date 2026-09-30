@@ -1,5 +1,6 @@
 import {
   getActiveUserSunscreens,
+  setUserSunscreenArchive,
   setUserSunscreenFavorite,
   UserSunscreen,
 } from '@/lib/userSunscreen'
@@ -20,6 +21,7 @@ export type UserSunscreenContextType = {
   getById: (id: string | number) => UserSunscreen | undefined
   refreshUserSunscreens: () => Promise<void>
   toggleFavorite: (id: number) => Promise<void>
+  archiveUserSunscreen: (id: number) => Promise<void>
 }
 
 const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null)
@@ -67,9 +69,29 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
     [db, refreshUserSunscreens]
   )
 
+  const archiveUserSunscreen = useCallback(
+    async (id: number) => {
+      try {
+        await setUserSunscreenArchive(db, id, 1)
+        await refreshUserSunscreens()
+      } catch (error) {
+        console.error(
+          `Failed To Archive: ${error instanceof Error ? error.message : String(error)}`
+        )
+      }
+    },
+    [db, refreshUserSunscreens]
+  )
+
   const value = useMemo(
-    () => ({ userSunscreens, getById, refreshUserSunscreens, toggleFavorite }),
-    [userSunscreens, getById, refreshUserSunscreens, toggleFavorite]
+    () => ({
+      userSunscreens,
+      getById,
+      refreshUserSunscreens,
+      toggleFavorite,
+      archiveUserSunscreen,
+    }),
+    [userSunscreens, getById, refreshUserSunscreens, toggleFavorite, archiveUserSunscreen]
   )
 
   return (

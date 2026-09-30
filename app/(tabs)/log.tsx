@@ -1,8 +1,19 @@
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
+import Separator from '@/components/Separator'
 import SunscreenCard from '@/components/SunscreenCard'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
-import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
+import {
+  ACTIVITY_BACKGROUND,
+  MAIN_BACKGROUND,
+  MODAL_BUTTONS,
+  PROFILE_BACKGROUND,
+  PROFILE_ICON,
+  PROFILE_SECONDARY,
+  PROFILE_TEXT,
+  SEPARATOR,
+} from '@/lib/constants'
 import { router, useFocusEffect } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import { useCallback, useState } from 'react'
 import { FlatList, Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -36,6 +47,7 @@ export default function LogScreen() {
 
   return (
     <View style={[styles.log, { paddingBlockStart: insets.top }]}>
+      <StatusBar style="light" />
       {focusedSunscreen ? (
         <View style={styles.focusedSection}>
           {focusedSunscreen.nickname === null ? (
@@ -74,7 +86,7 @@ export default function LogScreen() {
                 if (focusedSunscreen) openEditSunscreen(focusedSunscreen.id)
               }}
             >
-              <Text style={styles.showMoreText}>Edit</Text>
+              <Text style={styles.editText}>Edit</Text>
             </Pressable>
             <Pressable
               style={styles.showMoreButton}
@@ -89,7 +101,7 @@ export default function LogScreen() {
       ) : (
         <View style={styles.focusedSection}></View>
       )}
-      <View style={styles.seperator} />
+      <Separator />
       <FlatList
         style={styles.list}
         data={userSunscreens}
@@ -102,13 +114,13 @@ export default function LogScreen() {
                 isFocused={focusedSunscreen?.id === item.id}
               />
             </Pressable>
-            <View style={styles.seperator} />
+            <Separator />
           </>
         )}
         ListHeaderComponent={
           <>
             <View style={styles.sortHeader}></View>
-            <View style={styles.seperator} />
+            <Separator />
           </>
         }
         ListFooterComponent={
@@ -125,7 +137,7 @@ export default function LogScreen() {
 const styles = ScaledSheet.create({
   log: {
     flex: 1,
-    backgroundColor: PROFILE_SCREEN_BG_COLOR,
+    backgroundColor: MAIN_BACKGROUND,
   },
 
   focusedSection: {
@@ -143,14 +155,14 @@ const styles = ScaledSheet.create({
 
   nameText: {
     fontSize: '30@ms',
-    color: '#1f1f1f',
+    color: PROFILE_TEXT,
     fontWeight: 600,
   },
 
   subNameText: {
     fontSize: '18@ms',
     fontWeight: 500,
-    color: '#5c5c5c',
+    color: PROFILE_ICON,
   },
 
   by: {
@@ -177,8 +189,14 @@ const styles = ScaledSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: '2@s',
-    borderColor: '#c5c5c5',
+    borderColor: SEPARATOR,
     borderRadius: 4,
+  },
+
+  editText: {
+    fontSize: '15@ms',
+    fontWeight: 500,
+    color: PROFILE_TEXT,
   },
 
   showMoreButton: {
@@ -186,18 +204,19 @@ const styles = ScaledSheet.create({
     paddingBlock: '5@s',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#c5c5c5',
+    backgroundColor: SEPARATOR,
     borderRadius: 4,
   },
 
   showMoreText: {
-    fontSize: '16@ms',
+    fontSize: '15@ms',
     fontWeight: 500,
+    color: PROFILE_TEXT,
   },
 
   list: {
     flex: 1,
-    backgroundColor: '#ececec',
+    backgroundColor: MAIN_BACKGROUND,
   },
 
   seperator: {

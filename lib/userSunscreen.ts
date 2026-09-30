@@ -186,14 +186,14 @@ export async function setUserSunscreenArchive(
   db: SQLiteDatabase,
   id: number,
   isArchive: 0 | 1
-): Promise<number> {
+): Promise<void> {
   const result = await db.runAsync(
     /* sql */ `UPDATE user_sunscreen SET is_archived = ? WHERE id = ?`,
     isArchive,
     id
   )
 
-  return result.changes
+  if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
 }
 
 export function formatDuration(durationMs: number): string {
