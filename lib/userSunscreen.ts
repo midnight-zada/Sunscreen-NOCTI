@@ -31,6 +31,19 @@ export const COVERAGE_OPTIONS = [
   { label: 'Lip', value: 'lip' },
 ]
 
+export const SORT_OPTIONS = [
+  { label: 'Created At', value: 'created' },
+  { label: 'Updated At', value: 'updated' },
+  { label: 'Nickname', value: 'alpha_nickname' },
+  { label: 'Name', value: 'alpha_name' },
+  { label: 'Brand', value: 'alpha_brand'},
+  { label: 'SPF', value: 'spf' },
+  { label: 'Duration', value: 'duration' },
+  { label: 'Water Resistance', value: 'water_duration' },
+] as const
+
+export type SortOptions = (typeof SORT_OPTIONS)[number]['value']
+
 export type ImageType = 'cover' | 'product'
 
 export interface UserSunscreen {
@@ -62,6 +75,67 @@ export interface UserSunscreen {
   created_at: string
   updated_at: string
   synced_at: string | null
+}
+
+function compareNullableString(
+  a: string | null,
+  b: string | null,
+  direction: 'asc' | 'desc' = 'asc'
+): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return direction === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+}
+
+function compareNullableNumber(
+  a: number | null,
+  b: number | null,
+  direction: 'asc' | 'desc' = 'asc'
+): number {
+  if (a === null && b === null) return 0
+  if (a === null) return 1
+  if (b === null) return -1
+  return direction === 'asc' ? a - b : b - a
+}
+
+export type SortDirection = 'asc' | 'desc'
+
+export function sortUserSunscreens(
+  list: UserSunscreen[],
+  sortOption: SortOptions,
+  direction: SortDirection = 'asc'
+): UserSunscreen[] {
+  const sorted = [...list]
+
+  switch (sortOption) {
+    case 'created':
+      return sorted.sort((a, b) => (direction === 'asc' ? a.id - b.id : b.id - a.id))
+    case 'updated':
+      return sorted.sort((a, b) =>
+        direction === 'asc'
+          ? a.updated_at.localeCompare(b.updated_at)
+          : b.updated_at.localeCompare(a.updated_at)
+      )
+    case 'alpha_nickname':
+      return sorted.sort((a, b) => compareNullableString(a.nickname, b.nickname, direction))
+    case 'alpha_name':
+      return sorted.sort((a, b) => compareNullableString(a.name, b.name, direction))
+    case 'alpha_brand':
+      return sorted.sort((a, b) => compareNullableString(a.brand, b.brand, direction))
+    case 'spf':
+      return sorted.sort((a, b) => (direction === 'asc' ? a.spf - b.spf : b.spf - a.spf))
+    case 'duration':
+      return sorted.sort((a, b) =>
+        direction === 'asc' ? a.duration - b.duration : b.duration - a.duration
+      )
+    case 'water_duration':
+      return sorted.sort((a, b) =>
+        compareNullableNumber(a.water_duration, b.water_duration, direction)
+      )
+    default:
+      return sorted
+  }
 }
 
 export type InsertUserSunscreen = Omit<

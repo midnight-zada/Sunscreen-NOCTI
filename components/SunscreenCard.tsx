@@ -1,14 +1,16 @@
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
   MAIN_BACKGROUND,
+  MAIN_BG_DARK,
   MODAL_BG,
   MODAL_BUTTONS,
   PLACEHOLDER_BG,
   PROFILE_ICON,
   PROFILE_TEXT,
   SEPARATOR,
+  SEPARATOR_BRIGHT,
   SUN_COLOR,
-  WATER_COLOR,
+  WATER_COLOR
 } from '@/lib/constants'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
@@ -24,7 +26,7 @@ import { memo, useCallback, useRef, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
-import Button from './Button'
+import BorderButton from './BorderButton'
 import ImageViewer from './ImageViewer'
 import Separator from './Separator'
 
@@ -83,21 +85,32 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
       </Pressable>
       <View style={styles.infoSection}>
         <View style={styles.headerSection}>
-          <Text style={styles.nameText} numberOfLines={1}>
-            {sunscreen.nickname !== null ? sunscreen.nickname : sunscreen.name}
-          </Text>
+          <Pressable
+            style={styles.nameButton}
+            onPress={() =>
+              router.push({
+                pathname: '/viewUserSunscreen',
+                params: { id: sunscreen.id },
+              })
+            }
+            hitSlop={4}
+          >
+            <Text style={styles.nameText} numberOfLines={1}>
+              {sunscreen.nickname !== null ? sunscreen.nickname : sunscreen.name}
+            </Text>
+          </Pressable>
           <View style={styles.badgeSection}>
             <Pressable onPress={() => toggleFavorite(sunscreen.id)} hitSlop={4}>
               <Ionicons
                 name={isFavorite ? 'star' : 'star-outline'}
-                size={ms(22)}
+                size={ms(20)}
                 color={isFavorite ? '#ffed4c' : PROFILE_ICON}
               />
             </Pressable>
             <Pressable onPress={() => optionSheetRef.current?.present()} hitSlop={4}>
               <Ionicons
                 name="ellipsis-vertical-outline"
-                size={ms(22)}
+                size={ms(20)}
                 color={PROFILE_ICON}
               />
             </Pressable>
@@ -134,22 +147,24 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             </Text>
           </View>
           <View style={styles.buttonSection}>
-            <Button
+            <BorderButton
               style={[styles.button, styles.toggleButton]}
               onPress={() => {
                 if (sunscreen.water_duration !== null)
                   setIsWaterApplication(!isWaterApplication)
               }}
+              borderStyle={2}
+              borderRadius={12}
             >
               {sunscreen.water_duration ? (
                 <>
                   <Ionicons
                     name="sunny-outline"
-                    size={ms(22)}
+                    size={ms(20)}
                     style={{
                       opacity: !isWaterApplication ? 1 : 0.4,
                     }}
-                    color={ !isWaterApplication ? SUN_COLOR : PROFILE_TEXT}
+                    color={!isWaterApplication ? SUN_COLOR : PROFILE_TEXT}
                   />
                   <View
                     style={[
@@ -159,7 +174,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   />
                   <Ionicons
                     name="water-outline"
-                    size={ms(22)}
+                    size={ms(20)}
                     style={{
                       opacity: isWaterApplication ? 1 : 0.4,
                     }}
@@ -167,12 +182,17 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   />
                 </>
               ) : (
-                <Ionicons name="sunny-outline" size={ms(22)} color={SUN_COLOR} />
+                <Ionicons name="sunny-outline" size={ms(20)} color={SUN_COLOR} />
               )}
-            </Button>
-            <Button style={[styles.button, styles.applyButton]} onPress={applySunscreen}>
+            </BorderButton>
+            <BorderButton
+              style={[styles.button, styles.applyButton]}
+              borderRadius={12}
+              borderStyle={2}
+              onPress={applySunscreen}
+            >
               <Text style={styles.applyText}>Apply</Text>
-            </Button>
+            </BorderButton>
           </View>
         </View>
       </View>
@@ -267,7 +287,7 @@ const styles = ScaledSheet.create({
 
   imageBorder: {
     marginInlineStart: '10@s',
-    width: '105@s',
+    width: '95@s',
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -276,7 +296,7 @@ const styles = ScaledSheet.create({
   },
 
   image: {
-    width: '97@s',
+    width: '88@s',
     aspectRatio: 1,
     borderRadius: 20,
     overflow: 'hidden',
@@ -294,9 +314,13 @@ const styles = ScaledSheet.create({
     marginInlineEnd: '10@s',
   },
 
-  nameText: {
+  nameButton: {
     flex: 1,
-    fontSize: '18@ms',
+    marginInlineEnd: '5@s',
+  },
+
+  nameText: {
+    fontSize: '17@ms',
     color: PROFILE_TEXT,
     fontWeight: 600,
   },
@@ -327,15 +351,15 @@ const styles = ScaledSheet.create({
   },
 
   pinSection: {
-    width: '90@ms',
+    width: '95@ms',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
 
   pinText: {
-    fontSize: '14@ms',
-    fontWeight: 600,
-    color: PROFILE_TEXT,
+    fontSize: '13@ms',
+    fontWeight: 500,
+    color: SEPARATOR_BRIGHT,
   },
 
   pinSeparator: {
@@ -348,16 +372,16 @@ const styles = ScaledSheet.create({
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'space-between',
-    gap: '6@s',
   },
 
   button: {
-    flex: 1,
+    height: '46%',
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingInline: '10@s',
+    backgroundColor: MAIN_BG_DARK,
   },
 
   toggleButton: {
@@ -376,10 +400,10 @@ const styles = ScaledSheet.create({
   },
 
   applyText: {
-    fontSize: '16@ms',
-    fontWeight: 500,
+    fontSize: '14@ms',
+    fontWeight: 600,
     textAlign: 'center',
-    color: PROFILE_TEXT,
+    color: SEPARATOR_BRIGHT,
   },
 
   option: {},

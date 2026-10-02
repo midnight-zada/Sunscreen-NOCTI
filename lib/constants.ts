@@ -7,7 +7,8 @@ export const HEADER_SECONDARY = '#191C1F'
 export const HEADER_HIGHLIGHT = '#667788'
 export const HEADER_TEXT = '#8899AA'
 
-export const MAIN_BACKGROUND = '#181C20'
+export const MAIN_BACKGROUND = '#181c20'
+export const MAIN_BG_TRANSPARENT = 'rgba(24, 28, 32, 0.1)'
 export const MAIN_HEADER = '#9AB'
 export const MAIN_TEXT = '#435465'
 
@@ -32,3 +33,6 @@ export const MODAL_BG = HEADER_SECONDARY
 
 export const SUN_COLOR = '#FFE100'
 export const WATER_COLOR = '#007bff'
+
+export const MAIN_BG_DARK = '#262b2e'
+export const SEPARATOR_BRIGHT = PROFILE_TEXT

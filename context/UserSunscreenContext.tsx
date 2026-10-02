@@ -2,6 +2,9 @@ import {
   getActiveUserSunscreens,
   setUserSunscreenArchive,
   setUserSunscreenFavorite,
+  SortDirection,
+  SortOptions,
+  sortUserSunscreens,
   UserSunscreen,
 } from '@/lib/userSunscreen'
 import {
@@ -17,7 +20,11 @@ import {
 import { useAppContext } from './AppContext'
 
 export type UserSunscreenContextType = {
-  userSunscreens: UserSunscreen[]
+  userSunscreenList: UserSunscreen[]
+  sortOption: SortOptions
+  setSortOption: (sortOption: SortOptions) => void
+  sortDirection: SortDirection
+  toggleSortDirection: () => void
   getById: (id: string | number) => UserSunscreen | undefined
   refreshUserSunscreens: () => Promise<void>
   toggleFavorite: (id: number) => Promise<void>
@@ -29,6 +36,17 @@ const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null
 export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const { db, userId } = useAppContext()
   const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[]>([])
+  const [sortOption, setSortOption] = useState<SortOptions>('created')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  const toggleSortDirection = useCallback(() => {
+    setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+  }, [])
+
+  const userSunscreenList = useMemo(
+    () => sortUserSunscreens(userSunscreens, sortOption, sortDirection),
+    [userSunscreens, sortOption, sortDirection]
+  )
 
   const refreshUserSunscreens = useCallback(async () => {
     setUserSunscreens(await getActiveUserSunscreens(db))
@@ -85,13 +103,26 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      userSunscreens,
+      userSunscreenList,
+      sortOption,
+      setSortOption,
+      sortDirection,
+      toggleSortDirection,
       getById,
       refreshUserSunscreens,
       toggleFavorite,
       archiveUserSunscreen,
     }),
-    [userSunscreens, getById, refreshUserSunscreens, toggleFavorite, archiveUserSunscreen]
+    [
+      userSunscreenList,
+      sortOption,
+      sortDirection,
+      toggleSortDirection,
+      getById,
+      refreshUserSunscreens,
+      toggleFavorite,
+      archiveUserSunscreen,
+    ]
   )
 
   return (

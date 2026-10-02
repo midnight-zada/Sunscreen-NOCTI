@@ -1,40 +1,47 @@
+import BorderButton from '@/components/BorderButton'
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import Separator from '@/components/Separator'
 import SunscreenCard from '@/components/SunscreenCard'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
-  ACTIVITY_BACKGROUND,
   MAIN_BACKGROUND,
-  MODAL_BUTTONS,
+  MAIN_BG_DARK,
   PROFILE_BACKGROUND,
   PROFILE_ICON,
-  PROFILE_SECONDARY,
   PROFILE_TEXT,
   SEPARATOR,
 } from '@/lib/constants'
+import { SORT_OPTIONS } from '@/lib/userSunscreen'
+import { Ionicons } from '@expo/vector-icons'
 import { router, useFocusEffect } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useState } from 'react'
 import { FlatList, Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { scale, ScaledSheet } from 'react-native-size-matters'
+import { ms, scale, ScaledSheet } from 'react-native-size-matters'
+
+const CHIP_RADIUS = 16
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets()
   const {
-    userSunscreens,
+    userSunscreenList,
+    sortOption,
+    setSortOption,
+    sortDirection,
+    toggleSortDirection,
     getById,
-    refreshUserSunscreens: refreshLog,
+    refreshUserSunscreens,
   } = useUserSunscreens()
 
   const [focusedId, setFocusedId] = useState<string | number | null>(null)
   const focusedSunscreen =
-    (focusedId !== null ? getById(focusedId) : undefined) ?? userSunscreens[0] ?? null
+    (focusedId !== null ? getById(focusedId) : undefined) ?? userSunscreenList[0] ?? null
 
   useFocusEffect(
     useCallback(() => {
-      refreshLog()
-    }, [refreshLog])
+      refreshUserSunscreens()
+    }, [refreshUserSunscreens])
   )
 
   const openEditSunscreen = (id: number) => {
@@ -46,86 +53,72 @@ export default function LogScreen() {
   }
 
   return (
-    <View style={[styles.log, { paddingBlockStart: insets.top }]}>
+    <View style={styles.log}>
       <StatusBar style="light" />
-      {focusedSunscreen ? (
-        <View style={styles.focusedSection}>
-          {focusedSunscreen.nickname === null ? (
-            <View style={styles.nameSection}>
-              <Text style={styles.nameText} numberOfLines={1}>
-                {focusedSunscreen.name}
-              </Text>
-              {focusedSunscreen.brand && (
-                <Text style={[styles.subNameText]} numberOfLines={2}>
-                  <Text style={styles.by}>by</Text> {focusedSunscreen.brand}
-                </Text>
-              )}
-            </View>
-          ) : (
-            <View style={styles.nameSection}>
-              <Text style={styles.nameText} numberOfLines={1}>
-                {focusedSunscreen.nickname}
-              </Text>
-              {focusedSunscreen.brand && (
-                <View style={[styles.subNameSection]}>
-                  <Text style={styles.subNameText} numberOfLines={1}>
-                    {focusedSunscreen.name}{' '}
-                    <Text style={styles.by}>{focusedSunscreen.brand && 'by'}</Text>
-                  </Text>
-                  <Text style={styles.subNameText} numberOfLines={1}>
-                    {focusedSunscreen.brand}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-          <View style={styles.buttonSection}>
-            <Pressable
-              style={styles.editButton}
-              onPress={() => {
-                if (focusedSunscreen) openEditSunscreen(focusedSunscreen.id)
-              }}
-            >
-              <Text style={styles.editText}>Edit</Text>
-            </Pressable>
-            <Pressable
-              style={styles.showMoreButton}
-              onPress={() => {
-                if (focusedSunscreen) openMoreInfo(focusedSunscreen.id)
-              }}
-            >
-              <Text style={styles.showMoreText}>More Info</Text>
-            </Pressable>
-          </View>
+      <View style={[styles.header, { paddingBlockStart: insets.top }]}>
+        <View style={styles.headerOptions}>
+          <Text style={styles.headerText}>Sunscreens</Text>
         </View>
-      ) : (
-        <View style={styles.focusedSection}></View>
-      )}
+      </View>
+      <Separator />
+      <View style={styles.sortHeader}>
+        <FlatList
+          style={styles.sortHeaderList}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={SORT_OPTIONS}
+          keyExtractor={(option) => option.value}
+          contentContainerStyle={styles.sortHeaderContent}
+          renderItem={({ item: option }) => (
+            <BorderButton
+              style={[
+                styles.sortChip,
+                sortOption === option.value && styles.sortChipActive,
+              ]}
+              color={sortOption === option.value ? '#fff' : 'none'}
+              borderRadius={ms(CHIP_RADIUS)}
+              borderStyle={1}
+              onPress={() => setSortOption(option.value)}
+            >
+              <Text
+                style={[
+                  styles.sortChipText,
+                  sortOption === option.value && styles.sortChipTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </BorderButton>
+          )}
+        />
+        <Pressable style={styles.sortDirection} onPress={toggleSortDirection}>
+          <Ionicons
+            name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+            size={scale(18)}
+            color={PROFILE_TEXT}
+          />
+        </Pressable>
+      </View>
       <Separator />
       <FlatList
         style={styles.list}
-        data={userSunscreens}
+        data={userSunscreenList}
         keyExtractor={(value) => value.id.toString()}
         renderItem={({ item }) => (
           <>
+            <Separator />
             <Pressable onPress={() => setFocusedId(item.id)}>
               <SunscreenCard
                 sunscreen={item}
                 isFocused={focusedSunscreen?.id === item.id}
               />
             </Pressable>
-            <Separator />
           </>
         )}
-        ListHeaderComponent={
-          <>
-            <View style={styles.sortHeader}></View>
-            <Separator />
-          </>
-        }
         ListFooterComponent={
           <>
-            <DebugUserSunscreen refreshLog={refreshLog} />
+            <Separator />
+            <DebugUserSunscreen refreshLog={refreshUserSunscreens} />
             <View style={{ height: scale(100) }} />
           </>
         }
@@ -140,78 +133,21 @@ const styles = ScaledSheet.create({
     backgroundColor: MAIN_BACKGROUND,
   },
 
-  focusedSection: {
-    paddingInline: '3%',
-    height: '114@s',
-    justifyContent: 'flex-end',
-    gap: '6@s',
-    paddingBlockEnd: '6@s',
+  header: {
+    backgroundColor: PROFILE_BACKGROUND,
   },
 
-  nameSection: {
-    flex: 1,
-    justifyContent: 'center',
+  headerOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingBlockStart: '5@s',
+    paddingBlockEnd: '10@s',
   },
 
-  nameText: {
-    fontSize: '30@ms',
-    color: PROFILE_TEXT,
-    fontWeight: 600,
-  },
-
-  subNameText: {
-    fontSize: '18@ms',
-    fontWeight: 500,
-    color: PROFILE_ICON,
-  },
-
-  by: {
+  headerText: {
     fontSize: '16@ms',
-    fontWeight: 400,
-  },
-
-  subNameSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    columnGap: 3,
-    rowGap: 0,
-  },
-
-  buttonSection: {
-    flexDirection: 'row',
-    gap: '10@s',
-  },
-
-  editButton: {
-    flex: 1,
-    paddingBlock: '5@s',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: '2@s',
-    borderColor: SEPARATOR,
-    borderRadius: 4,
-  },
-
-  editText: {
-    fontSize: '15@ms',
-    fontWeight: 500,
-    color: PROFILE_TEXT,
-  },
-
-  showMoreButton: {
-    flex: 1,
-    paddingBlock: '5@s',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: SEPARATOR,
-    borderRadius: 4,
-  },
-
-  showMoreText: {
-    fontSize: '15@ms',
-    fontWeight: 500,
-    color: PROFILE_TEXT,
+    fontWeight: 600,
+    color: '#fff',
   },
 
   list: {
@@ -226,6 +162,46 @@ const styles = ScaledSheet.create({
   },
 
   sortHeader: {
-    height: '36@s',
+    flexDirection: 'row',
+    paddingBlock: '4@s',
+    backgroundColor: PROFILE_BACKGROUND,
+  },
+
+  sortHeaderList: {
+    flex: 1,
+  },
+
+  sortHeaderContent: {
+    paddingInline: '3%',
+    alignItems: 'center',
+    gap: '7@s',
+  },
+
+  sortChip: {
+    paddingBlock: '6@s',
+    paddingInline: '12@s',
+    borderRadius: `${CHIP_RADIUS}@ms`,
+  },
+
+  sortChipActive: {
+    backgroundColor: MAIN_BG_DARK,
+  },
+
+  sortChipText: {
+    fontSize: '13@ms',
+    fontWeight: 500,
+    color: PROFILE_ICON,
+  },
+
+  sortChipTextActive: {
+    color: PROFILE_TEXT,
+  },
+
+  sortDirection: {
+    width: '36@s',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderLeftWidth: 1,
+    borderLeftColor: SEPARATOR,
   },
 })
