@@ -37,10 +37,10 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const { db, userId } = useAppContext()
   const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[]>([])
   const [sortOption, setSortOption] = useState<SortOptions>('created')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('default')
 
   const toggleSortDirection = useCallback(() => {
-    setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+    setSortDirection((current) => (current === 'default' ? 'reversed' : 'default'))
   }, [])
 
   const userSunscreenList = useMemo(

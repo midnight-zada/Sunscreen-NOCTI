@@ -3,6 +3,9 @@ import ImageViewer from '@/components/ImageViewer'
 import Separator from '@/components/Separator'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
+  FONT_HEADER,
+  FONT_TEXT,
+  FONT_TITLE,
   MAIN_BACKGROUND,
   PLACEHOLDER_BG,
   PROFILE_ICON,
@@ -14,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -25,10 +28,10 @@ const INFO_SEPARATOR_GRADIENT = {
   locations: [0, 0.7, 1],
 } as const
 
-const IMAGE_HEADER_GRADIENT = {
-  colors: [MAIN_BACKGROUND, SEPARATOR, SEPARATOR, MAIN_BACKGROUND],
-  locations: [0, 0.15, 0.85, 1],
-} as const
+const SECTION_GAP = 10
+const ITEM_GAP = 4
+
+const PLACEHOLDER_IMAGE = require('../assets/images/placeholder.jpg')
 
 const ViewUserSunscreen = () => {
   const insets = useSafeAreaInsets()
@@ -42,20 +45,33 @@ const ViewUserSunscreen = () => {
   const sunscreen = getById(sunscreenId)
   const isFavorite = sunscreen?.is_favorite === 1
 
-  const returnBack = () => {
+  const returnBack = useCallback(() => {
     router.back()
-  }
+  }, [])
 
-  const editSunscreen = () => {
+  const editSunscreen = useCallback(() => {
     router.push({ pathname: '/editUserSunscreen', params: { id } })
-  }
+  }, [id])
 
-  const focuseImage = (type: ImageType) => {
-    if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
-    else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
+  const focuseImage = useCallback(
+    (type: ImageType) => {
+      if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
+      else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
 
-    setIsImageFocused(true)
-  }
+      setIsImageFocused(true)
+    },
+    [sunscreen]
+  )
+
+  const favoriteButton = (
+    <Pressable onPress={() => toggleFavorite(sunscreenId)} hitSlop={5}>
+      <Ionicons
+        name={isFavorite ? 'star' : 'star-outline'}
+        size={ms(FONT_TITLE + 3)}
+        color={isFavorite ? '#ffed4c' : PROFILE_ICON}
+      />
+    </Pressable>
+  )
 
   return (
     <View
@@ -71,9 +87,9 @@ const ViewUserSunscreen = () => {
           <Pressable onPress={returnBack} hitSlop={10}>
             <Ionicons
               name="chevron-back"
-              size={ms(26)}
+              size={ms(FONT_HEADER + 7)}
               color={PROFILE_ICON}
-              style={{ transform: [{ translateY: ms(4) }] }}
+              style={{ transform: [{ translateY: ms(3) }] }}
             />
           </Pressable>
         </View>
@@ -90,17 +106,17 @@ const ViewUserSunscreen = () => {
       <StatusBar style="light" />
       {sunscreen ? (
         <ScrollView>
-          {sunscreen.nickname === null ? (
+          {sunscreen.nickname === null || sunscreen.name === null ? (
             <View style={styles.nameSection}>
               <View style={styles.nameRow}>
-                <Text style={styles.nameText}>{sunscreen.name}</Text>
-                <Pressable onPress={() => toggleFavorite(sunscreenId)} hitSlop={5}>
-                  <Ionicons
-                    name={isFavorite ? 'star' : 'star-outline'}
-                    size={ms(28)}
-                    color={isFavorite ? '#ffed4c' : PROFILE_ICON}
-                  />
-                </Pressable>
+                <Text style={styles.nameText}>
+                  {sunscreen.name
+                    ? sunscreen.name
+                    : sunscreen.nickname
+                      ? sunscreen.nickname
+                      : '[ERROR]'}
+                </Text>
+                {favoriteButton}
               </View>
               {sunscreen.brand && (
                 <Text style={[styles.subNameText]}>
@@ -112,13 +128,7 @@ const ViewUserSunscreen = () => {
             <View style={styles.nameSection}>
               <View style={styles.nameRow}>
                 <Text style={styles.nameText}>{sunscreen.nickname}</Text>
-                <Pressable onPress={() => toggleFavorite(sunscreenId)} hitSlop={5}>
-                  <Ionicons
-                    name={isFavorite ? 'star' : 'star-outline'}
-                    size={ms(28)}
-                    color={isFavorite ? '#ffed4c' : PROFILE_ICON}
-                  />
-                </Pressable>
+                {favoriteButton}
               </View>
               {sunscreen.brand && (
                 <View style={[styles.subNameSection]}>
@@ -135,7 +145,6 @@ const ViewUserSunscreen = () => {
           <View style={styles.imageSection}>
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
-              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
               <Pressable
                 style={[
                   styles.imageBorder,
@@ -149,9 +158,7 @@ const ViewUserSunscreen = () => {
               >
                 <Image
                   source={
-                    sunscreen.cover_uri
-                      ? { uri: sunscreen.cover_uri }
-                      : require('../assets/images/placeholder.jpg')
+                    sunscreen.cover_uri ? { uri: sunscreen.cover_uri } : PLACEHOLDER_IMAGE
                   }
                   style={styles.image}
                 />
@@ -159,7 +166,6 @@ const ViewUserSunscreen = () => {
             </View>
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
-              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
               <Pressable
                 style={[
                   styles.imageBorder,
@@ -173,9 +179,7 @@ const ViewUserSunscreen = () => {
               >
                 <Image
                   source={
-                    sunscreen.image_uri
-                      ? { uri: sunscreen.image_uri }
-                      : require('../assets/images/placeholder.jpg')
+                    sunscreen.image_uri ? { uri: sunscreen.image_uri } : PLACEHOLDER_IMAGE
                   }
                   style={styles.image}
                 />
@@ -241,9 +245,7 @@ const ViewUserSunscreen = () => {
       {sunscreen?.barcode && (
         <View style={[styles.footer, { paddingBlockEnd: insets.bottom }]}>
           <Separator />
-          <Text style={[styles.barcode, styles.headerText, styles.headerSunscreen]}>
-            {sunscreen.barcode}
-          </Text>
+          <Text style={[styles.barcode, styles.infoKey]}>{sunscreen.barcode}</Text>
         </View>
       )}
       <ImageViewer
@@ -266,7 +268,7 @@ const styles = ScaledSheet.create({
   header: {
     width: '100%',
     paddingInline: '3%',
-    paddingBlockEnd: '12@s',
+    paddingBlockEnd: `${SECTION_GAP}@s`,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
@@ -277,107 +279,110 @@ const styles = ScaledSheet.create({
   },
 
   headerText: {
-    fontSize: '16@ms',
+    fontSize: `${FONT_HEADER}@ms`,
     color: PROFILE_TEXT,
   },
 
   headerSunscreen: {
+    fontSize: `${FONT_HEADER}@ms`,
     fontWeight: 600,
     textAlign: 'center',
   },
 
   nameSection: {
     paddingInline: '3%',
-    paddingBlock: '10@s',
-    gap: '4@s',
+    paddingBlock: `${SECTION_GAP}@s`,
+    gap: `${ITEM_GAP + 1}@s`,
   },
 
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: '5@s',
+    gap: `${SECTION_GAP}@s`,
   },
 
   nameText: {
     flex: 1,
-    fontSize: '26@ms',
+    fontSize: `${FONT_TITLE}@ms`,
     color: PROFILE_TEXT,
     fontWeight: 600,
   },
 
   subNameText: {
-    fontSize: '16@ms',
+    fontSize: `${FONT_TEXT}@ms`,
     fontWeight: 500,
     color: PROFILE_ICON,
   },
 
   by: {
-    fontSize: '14@ms',
+    fontSize: `${FONT_TEXT}@ms`,
     fontWeight: 400,
+    opacity: 0.77,
   },
 
   subNameSection: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'baseline',
-    columnGap: 3,
+    columnGap: '3@ms',
     rowGap: 0,
   },
 
   imageSection: {
-    paddingInline: '3%',
-    paddingBlockStart: '10@s',
-    paddingBlockEnd: '14@s',
+    paddingInline: '6%',
+    paddingBlockStart: `${SECTION_GAP}@s`,
+    paddingBlockEnd: `${SECTION_GAP + 2.5}@s`,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    gap: '10@s',
+    justifyContent: 'space-around',
   },
 
-  imageContainer: {},
+  imageContainer: {
+    gap: `${ITEM_GAP}@s`,
+  },
 
   imageHeaderText: {
     textAlign: 'center',
   },
 
   imageBorder: {
-    width: '136@s',
+    width: '111@s',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: '2@s',
-    borderRadius: 32,
+    borderRadius: 30,
   },
 
   image: {
-    width: '126@s',
+    width: '102.9@s',
     aspectRatio: 1,
-    borderRadius: 27,
+    borderRadius: 25,
   },
 
   infoSection: {
     paddingInline: '3%',
-    paddingBlock: '10@s',
+    paddingBlock: `${SECTION_GAP}@s`,
     flexDirection: 'row',
   },
 
   infoColumn: {
     flex: 1,
-    gap: '10@s',
+    gap: `${SECTION_GAP}@s`,
   },
 
   infoRow: {
-    gap: '4@s',
+    gap: `${ITEM_GAP}@s`,
   },
 
   infoKey: {
-    fontSize: '16@ms',
-    fontWeight: 600,
+    fontSize: `${FONT_TEXT}@ms`,
+    fontWeight: 500,
     color: PROFILE_TEXT,
   },
 
   infoValue: {
-    fontSize: '16@ms',
-    fontWeight: 500,
+    fontSize: `${FONT_TEXT}@ms`,
+    fontWeight: 400,
     color: PROFILE_ICON,
   },
 

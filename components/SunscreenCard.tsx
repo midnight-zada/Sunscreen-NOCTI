@@ -1,5 +1,8 @@
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
+  FONT_HEADER,
+  FONT_SUBTEXT,
+  FONT_TEXT,
   MAIN_BACKGROUND,
   MAIN_BG_DARK,
   MODAL_BG,
@@ -160,7 +163,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                 <>
                   <Ionicons
                     name="sunny-outline"
-                    size={ms(20)}
+                    size={ms(18)}
                     style={{
                       opacity: !isWaterApplication ? 1 : 0.4,
                     }}
@@ -174,7 +177,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   />
                   <Ionicons
                     name="water-outline"
-                    size={ms(20)}
+                    size={ms(18)}
                     style={{
                       opacity: isWaterApplication ? 1 : 0.4,
                     }}
@@ -182,7 +185,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   />
                 </>
               ) : (
-                <Ionicons name="sunny-outline" size={ms(20)} color={SUN_COLOR} />
+                <Ionicons name="sunny-outline" size={ms(18)} color={SUN_COLOR} />
               )}
             </BorderButton>
             <BorderButton
@@ -282,12 +285,12 @@ const styles = ScaledSheet.create({
   card: {
     flexDirection: 'row',
     gap: '10@s',
-    paddingBlock: '6@s',
+    paddingBlock: '5@s',
   },
 
   imageBorder: {
     marginInlineStart: '10@s',
-    width: '95@s',
+    width: '90@s',
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -296,7 +299,7 @@ const styles = ScaledSheet.create({
   },
 
   image: {
-    width: '88@s',
+    width: '83.6@s',
     aspectRatio: 1,
     borderRadius: 20,
     overflow: 'hidden',
@@ -320,7 +323,7 @@ const styles = ScaledSheet.create({
   },
 
   nameText: {
-    fontSize: '17@ms',
+    fontSize: `${FONT_HEADER}@ms`,
     color: PROFILE_TEXT,
     fontWeight: 600,
   },
@@ -328,22 +331,20 @@ const styles = ScaledSheet.create({
   badgeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: '7@ms',
+    gap: '8@ms',
     paddingInlineStart: '6@ms',
   },
 
   seperator: {
     width: '100%',
     height: StyleSheet.hairlineWidth,
-    marginBlockStart: '6@s',
-    marginBlockEnd: '4@s',
+    marginBlock: '5@s',
     backgroundColor: SEPARATOR,
     marginInlineEnd: '-3%',
   },
 
   bodySection: {
     flex: 1,
-    paddingBlockStart: '3@ms',
     marginInlineEnd: '10@s',
     gap: '10@s',
     flexDirection: 'row',
@@ -357,7 +358,7 @@ const styles = ScaledSheet.create({
   },
 
   pinText: {
-    fontSize: '13@ms',
+    fontSize: `${FONT_SUBTEXT}@ms`,
     fontWeight: 500,
     color: SEPARATOR_BRIGHT,
   },
@@ -375,7 +376,7 @@ const styles = ScaledSheet.create({
   },
 
   button: {
-    height: '46%',
+    height: '47%',
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -400,7 +401,7 @@ const styles = ScaledSheet.create({
   },
 
   applyText: {
-    fontSize: '14@ms',
+    fontSize: `${FONT_SUBTEXT}@ms`,
     fontWeight: 600,
     textAlign: 'center',
     color: SEPARATOR_BRIGHT,

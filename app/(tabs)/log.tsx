@@ -93,7 +93,7 @@ export default function LogScreen() {
         />
         <Pressable style={styles.sortDirection} onPress={toggleSortDirection}>
           <Ionicons
-            name={sortDirection === 'asc' ? 'arrow-up' : 'arrow-down'}
+            name={sortDirection === 'reversed' ? 'arrow-up' : 'arrow-down'}
             size={scale(18)}
             color={PROFILE_TEXT}
           />

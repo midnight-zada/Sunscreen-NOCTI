@@ -6,10 +6,13 @@ import Separator from '@/components/Separator'
 import { useAppContext } from '@/context/AppContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
+  FONT_HEADER,
+  FONT_TEXT,
   MAIN_BACKGROUND,
   PLACEHOLDER_BG,
   PROFILE_ICON,
   PROFILE_TEXT,
+  RED_ORANGE,
   SEPARATOR,
 } from '@/lib/constants'
 import {
@@ -49,14 +52,32 @@ const INFO_SEPARATOR_GRADIENT = {
   locations: [0, 0.7, 1],
 } as const
 
-const IMAGE_HEADER_GRADIENT = {
-  colors: [MAIN_BACKGROUND, SEPARATOR, SEPARATOR, MAIN_BACKGROUND],
-  locations: [0, 0.15, 0.85, 1],
-} as const
-
 const PLACEHOLDER_COLOR = PROFILE_ICON
+const SECTION_GAP = 10
+const ITEM_GAP = 4
+const SINGLE_GAP = 6
+
+const PLACEHOLDER_IMAGE = require('../assets/images/placeholder.jpg')
 
 type EditSheetMode = 'color' | 'picture' | null
+
+const getFieldErrors = (sunscreen: InsertUserSunscreen) => {
+  const errors: string[] = []
+
+  if (!sunscreen.name && !sunscreen.nickname) {
+    errors.push('- Fill in either nickname or name')
+  }
+
+  if (!sunscreen.spf || sunscreen.spf <= 0) {
+    errors.push('- SPF must be greater than 0')
+  }
+
+  if (!sunscreen.duration || sunscreen.duration <= 0) {
+    errors.push('- Duration must be greater than 0')
+  }
+
+  return errors
+}
 
 const EditUserSunscreen = () => {
   const insets = useSafeAreaInsets()
@@ -104,26 +125,12 @@ const EditUserSunscreen = () => {
     setEditSunscreen(insertSunscreen)
   }, [sunscreen])
 
-  const cancelEdit = () => {
+  const cancelEdit = useCallback(() => {
     discardAllStagedImages()
     router.back()
-  }
+  }, [discardAllStagedImages])
 
-  const getFieldErrors = (sunscreen: InsertUserSunscreen) => {
-    const errors: string[] = []
-
-    if (!sunscreen.spf || sunscreen.spf <= 0) {
-      errors.push('SPF must be greater than 0')
-    }
-
-    if (!sunscreen.duration || sunscreen.duration <= 0) {
-      errors.push('Duration must be greater than 0')
-    }
-
-    return errors
-  }
-
-  const confirmEdit = async () => {
+  const confirmEdit = useCallback(async () => {
     try {
       if (editSunscreen) {
         let confirmEditSunscreen = editSunscreen
@@ -168,26 +175,29 @@ const EditUserSunscreen = () => {
         `Failed To Confirm Edit: ${error instanceof Error ? error.message : String(error)}`
       )
     }
-  }
+  }, [editSunscreen, db, sunscreenId, refreshUserSunscreens])
 
-  const focuseImage = (type: ImageType) => {
-    if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
-    else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
+  const focuseImage = useCallback(
+    (type: ImageType) => {
+      if (type == 'cover' && sunscreen) setFocuseImageSource(sunscreen.cover_uri)
+      else if (sunscreen) setFocuseImageSource(sunscreen.image_uri)
 
-    setIsImageFocused(true)
-  }
+      setIsImageFocused(true)
+    },
+    [sunscreen]
+  )
 
-  const editProductImage = async () => {
+  const editProductImage = useCallback(async () => {
     setSheetMode('picture')
     setImageType('product')
     editSheetRef.current?.present()
-  }
+  }, [])
 
-  const editCoverImage = async () => {
+  const editCoverImage = useCallback(async () => {
     setSheetMode('picture')
     setImageType('cover')
     editSheetRef.current?.present()
-  }
+  }, [])
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -196,33 +206,33 @@ const EditUserSunscreen = () => {
     []
   )
 
-  const stageImageResults = (
-    imageResult: [string, string | null] | null,
-    type: ImageType
-  ) => {
-    setIsWaitingLibrary(false)
-    setIsWaitingPhoto(false)
+  const stageImageResults = useCallback(
+    (imageResult: [string, string | null] | null, type: ImageType) => {
+      setIsWaitingLibrary(false)
+      setIsWaitingPhoto(false)
 
-    if (!imageResult) return
-    const [uri, borderColor] = imageResult
+      if (!imageResult) return
+      const [uri, borderColor] = imageResult
 
-    const prevStagedImage = stagedImages.current[type]
-    if (prevStagedImage) discardStagedUserSunscreenImage(prevStagedImage)
-    stagedImages.current = { ...stagedImages.current, [type]: uri }
-    removedImages.current.delete(type)
+      const prevStagedImage = stagedImages.current[type]
+      if (prevStagedImage) discardStagedUserSunscreenImage(prevStagedImage)
+      stagedImages.current = { ...stagedImages.current, [type]: uri }
+      removedImages.current.delete(type)
 
-    if (type === 'cover') {
-      setEditSunscreenField('cover_uri', uri)
-      setEditSunscreenField('cover_border_color', borderColor)
-    } else {
-      setEditSunscreenField('image_uri', uri)
-      setEditSunscreenField('border_color', borderColor)
-    }
+      if (type === 'cover') {
+        setEditSunscreenField('cover_uri', uri)
+        setEditSunscreenField('cover_border_color', borderColor)
+      } else {
+        setEditSunscreenField('image_uri', uri)
+        setEditSunscreenField('border_color', borderColor)
+      }
 
-    editSheetRef.current?.close()
-  }
+      editSheetRef.current?.close()
+    },
+    [setEditSunscreenField]
+  )
 
-  const uploadImage = async () => {
+  const uploadImage = useCallback(async () => {
     if (!imageType) return
 
     try {
@@ -235,9 +245,9 @@ const EditUserSunscreen = () => {
         `Error Picking Image: ${error instanceof Error ? error.message : String(error)}`
       )
     }
-  }
+  }, [imageType, stageImageResults])
 
-  const takeImage = async () => {
+  const takeImage = useCallback(async () => {
     if (!imageType) return
 
     try {
@@ -250,9 +260,9 @@ const EditUserSunscreen = () => {
         `Error Taking Photo: ${error instanceof Error ? error.message : String(error)}`
       )
     }
-  }
+  }, [imageType, stageImageResults])
 
-  const removeImage = async () => {
+  const removeImage = useCallback(async () => {
     if (!imageType) return
 
     const stagedURI = stagedImages.current[imageType]
@@ -273,7 +283,7 @@ const EditUserSunscreen = () => {
     }
 
     editSheetRef.current?.close()
-  }
+  }, [imageType, setEditSunscreenField])
 
   return (
     <View
@@ -294,7 +304,7 @@ const EditUserSunscreen = () => {
           </Pressable>
           <Ionicons
             name="chevron-back"
-            size={ms(26)}
+            size={ms(FONT_HEADER + 7)}
             color={PROFILE_ICON}
             style={{ opacity: 0 }}
             pointerEvents="none"
@@ -316,68 +326,58 @@ const EditUserSunscreen = () => {
           bottomOffset={20}
           keyboardShouldPersistTaps="handled"
         >
-          {editSunscreen.nickname === null ? (
-            <View style={styles.nameSection}>
-              <View style={styles.nameRow}>
-                <Text style={styles.nameText}>{editSunscreen.name}</Text>
-                <Pressable
-                  onPress={() =>
-                    setEditSunscreenField(
-                      'is_favorite',
-                      editSunscreen.is_favorite ? 0 : 1
-                    )
-                  }
-                  hitSlop={5}
-                >
-                  <Ionicons
-                    name={editSunscreen.is_favorite ? 'star' : 'star-outline'}
-                    size={ms(28)}
-                    color={editSunscreen.is_favorite ? '#ffed4c' : PROFILE_ICON}
-                  />
-                </Pressable>
-              </View>
-              {editSunscreen.brand && (
-                <Text style={[styles.subNameText]}>
-                  <Text style={styles.by}>by</Text> {editSunscreen.brand}
-                </Text>
-              )}
+          <View style={styles.nameInputSection}>
+            <View style={styles.horizInfoRow}>
+              <Text
+                style={[
+                  styles.infoKey,
+                  styles.horizKey,
+                  !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
+                ]}
+              >
+                Nickname
+              </Text>
+              <TextInput
+                style={[styles.noteInput, styles.horizInput]}
+                value={editSunscreen.nickname || ''}
+                onChange={(e) =>
+                  setEditSunscreenField('nickname', e.nativeEvent.text || null)
+                }
+              />
             </View>
-          ) : (
-            <View style={styles.nameSection}>
-              <View style={styles.nameRow}>
-                <Text style={styles.nameText}>{editSunscreen.nickname}</Text>
-                <Pressable
-                  onPress={() =>
-                    setEditSunscreenField(
-                      'is_favorite',
-                      editSunscreen.is_favorite ? 0 : 1
-                    )
-                  }
-                  hitSlop={5}
-                >
-                  <Ionicons
-                    name={editSunscreen.is_favorite ? 'star' : 'star-outline'}
-                    size={ms(28)}
-                    color={editSunscreen.is_favorite ? '#ffed4c' : PROFILE_ICON}
-                  />
-                </Pressable>
-              </View>
-              {editSunscreen.brand && (
-                <View style={[styles.subNameSection]}>
-                  <Text style={styles.subNameText}>
-                    {editSunscreen.name}{' '}
-                    <Text style={styles.by}>{editSunscreen.brand && 'by'}</Text>
-                  </Text>
-                  <Text style={styles.subNameText}>{editSunscreen.brand}</Text>
-                </View>
-              )}
+            <View style={styles.horizInfoRow}>
+              <Text
+                style={[
+                  styles.infoKey,
+                  styles.horizKey,
+                  !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
+                ]}
+              >
+                Name
+              </Text>
+              <TextInput
+                style={[styles.noteInput, styles.horizInput]}
+                value={editSunscreen.name || ''}
+                onChange={(e) =>
+                  setEditSunscreenField('name', e.nativeEvent.text || null)
+                }
+              />
             </View>
-          )}
+            <View style={styles.horizInfoRow}>
+              <Text style={[styles.infoKey, styles.horizKey]}>Brand</Text>
+              <TextInput
+                style={[styles.noteInput, styles.horizInput]}
+                value={editSunscreen.brand || ''}
+                onChange={(e) => {
+                  setEditSunscreenField('brand', e.nativeEvent.text || null)
+                }}
+              />
+            </View>
+          </View>
           <Separator />
           <View style={styles.imageSection}>
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
-              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
               <Pressable
                 style={[
                   styles.imageBorder,
@@ -393,19 +393,22 @@ const EditUserSunscreen = () => {
                   source={
                     editSunscreen.cover_uri
                       ? { uri: editSunscreen.cover_uri }
-                      : require('../assets/images/placeholder.jpg')
+                      : PLACEHOLDER_IMAGE
                   }
                   style={styles.image}
                 />
               </Pressable>
               <Pressable style={styles.editButton} onPress={editCoverImage}>
                 <Text style={styles.editText}>Edit</Text>
-                <Ionicons name="create-outline" size={ms(16)} color={PROFILE_TEXT} />
+                <Ionicons
+                  name="create-outline"
+                  size={ms(FONT_TEXT + 1)}
+                  color={PROFILE_TEXT}
+                />
               </Pressable>
             </View>
             <View style={styles.imageContainer}>
               <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
-              <Separator gradient={IMAGE_HEADER_GRADIENT} scaleMargin={[3, 5]} />
               <Pressable
                 style={[
                   styles.imageBorder,
@@ -421,14 +424,18 @@ const EditUserSunscreen = () => {
                   source={
                     editSunscreen.image_uri
                       ? { uri: editSunscreen.image_uri }
-                      : require('../assets/images/placeholder.jpg')
+                      : PLACEHOLDER_IMAGE
                   }
                   style={styles.image}
                 />
               </Pressable>
               <Pressable style={styles.editButton} onPress={editProductImage}>
                 <Text style={styles.editText}>Edit</Text>
-                <Ionicons name="create-outline" size={ms(16)} color={PROFILE_TEXT} />
+                <Ionicons
+                  name="create-outline"
+                  size={ms(FONT_TEXT + 1)}
+                  color={PROFILE_TEXT}
+                />
               </Pressable>
             </View>
           </View>
@@ -436,7 +443,11 @@ const EditUserSunscreen = () => {
           <View style={styles.infoSection}>
             <View style={styles.infoColumn}>
               <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>SPF</Text>
+                <Text
+                  style={[styles.infoKey, editSunscreen.spf <= 0 && styles.inputNeeded]}
+                >
+                  SPF
+                </Text>
                 <Separator gradient={INFO_SEPARATOR_GRADIENT} />
                 <TextInput
                   style={styles.infoValue}
@@ -449,7 +460,11 @@ const EditUserSunscreen = () => {
                 />
               </View>
               <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>Duration</Text>
+                <Text
+                  style={[styles.infoKey, editSunscreen.duration <= 0 && styles.inputNeeded]}
+                >
+                  Duration
+                </Text>
                 <Separator gradient={INFO_SEPARATOR_GRADIENT} />
                 <TextInput
                   style={styles.infoValue}
@@ -501,6 +516,7 @@ const EditUserSunscreen = () => {
                   data={TYPE_OPTIONS}
                   initValue={editSunscreen.type}
                   setField={setEditSunscreenField}
+                  fontSize={FONT_TEXT}
                 />
               </View>
               <View style={styles.infoRow}>
@@ -511,6 +527,7 @@ const EditUserSunscreen = () => {
                   data={FORM_OPTIONS}
                   initValue={editSunscreen.form}
                   setField={setEditSunscreenField}
+                  fontSize={FONT_TEXT}
                 />
               </View>
               <View style={styles.infoRow}>
@@ -521,29 +538,39 @@ const EditUserSunscreen = () => {
                   data={COVERAGE_OPTIONS}
                   initValue={editSunscreen.coverage}
                   setField={setEditSunscreenField}
+                  fontSize={FONT_TEXT}
                 />
               </View>
             </View>
           </View>
-          <View style={[styles.notes, styles.infoRow]}>
-            <Text style={styles.infoKey}>Notes</Text>
-            <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-            <TextInput
-              style={styles.noteInput}
-              value={editSunscreen.notes || ''}
-              onChange={(e) => setEditSunscreenField('notes', e.nativeEvent.text)}
-              multiline
-            />
-          </View>
-          <View style={[styles.notes, styles.infoRow]}>
-            <Text style={styles.infoKey}>Barcode</Text>
-            <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-            <TextInput
-              style={styles.noteInput}
-              value={editSunscreen.barcode || ''}
-              onChange={(e) => setEditSunscreenField('barcode', e.nativeEvent.text)}
-              multiline
-            />
+          <View style={styles.notes}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoKey}>Notes</Text>
+              <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+              <TextInput
+                style={styles.noteInput}
+                value={editSunscreen.notes || ''}
+                onChange={(e) => setEditSunscreenField('notes', e.nativeEvent.text)}
+                multiline
+              />
+            </View>
+            <View
+              style={[
+                styles.horizInfoRow,
+                {
+                  paddingBlockEnd: insets.bottom,
+                },
+              ]}
+            >
+              <Text style={[styles.infoKey, { marginInlineEnd: scale(SECTION_GAP) }]}>
+                Barcode
+              </Text>
+              <TextInput
+                style={[styles.noteInput, styles.horizInput]}
+                value={editSunscreen.barcode || ''}
+                onChange={(e) => setEditSunscreenField('barcode', e.nativeEvent.text)}
+              />
+            </View>
           </View>
         </KeyboardAwareScrollView>
       ) : (
@@ -656,7 +683,7 @@ const styles = ScaledSheet.create({
   header: {
     width: '100%',
     paddingInline: '3%',
-    paddingBlockEnd: '12@s',
+    paddingBlockEnd: `${SECTION_GAP}@s`,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
@@ -671,159 +698,134 @@ const styles = ScaledSheet.create({
   },
 
   headerText: {
-    fontSize: '16@ms',
+    fontSize: `${FONT_HEADER}@ms`,
     color: PROFILE_TEXT,
   },
 
   headerSunscreen: {
+    fontSize: `${FONT_HEADER}@ms`,
     fontWeight: 600,
     textAlign: 'center',
   },
 
-  nameSection: {
+  nameInputSection: {
     paddingInline: '3%',
-    paddingBlock: '10@s',
-    gap: '4@s',
+    paddingBlock: `${SECTION_GAP}@s`,
+    gap: `${SINGLE_GAP}@s`,
   },
 
-  nameRow: {
+  horizInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: '5@s',
   },
 
-  nameText: {
+  horizKey: {
+    width: '90@s',
+  },
+
+  horizInput: {
     flex: 1,
-    fontSize: '26@ms',
-    color: PROFILE_TEXT,
-    fontWeight: 600,
-  },
-
-  subNameText: {
-    fontSize: '16@ms',
-    fontWeight: 500,
-    color: PROFILE_ICON,
-  },
-
-  by: {
-    fontSize: '14@ms',
-    fontWeight: 400,
-  },
-
-  subNameSection: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    columnGap: 3,
-    rowGap: 0,
   },
 
   imageSection: {
-    paddingInline: '3%',
-    paddingBlockStart: '10@s',
-    paddingBlockEnd: '14@s',
+    paddingInline: '6%',
+    paddingBlockStart: `${SECTION_GAP}@s`,
+    paddingBlockEnd: `${SECTION_GAP + 2.5}@s`,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    gap: '10@s',
+    justifyContent: 'space-around',
   },
 
-  imageContainer: {},
+  imageContainer: {
+    gap: `${ITEM_GAP}@s`,
+  },
 
   imageHeaderText: {
     textAlign: 'center',
   },
 
   imageBorder: {
-    width: '136@s',
+    width: '111@s',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: '2@s',
-    borderRadius: 32,
+    borderRadius: 30,
   },
 
   image: {
-    width: '126@s',
+    width: '102.9@s',
     aspectRatio: 1,
-    borderRadius: 27,
+    borderRadius: 25,
   },
 
   editButton: {
-    width: '135@s',
     paddingBlock: '5@s',
-    marginBlockStart: '7@s',
+    marginBlockStart: `${ITEM_GAP}@s`,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'center',
-    gap: '6@s',
+    gap: '5@s',
     backgroundColor: SEPARATOR,
     borderRadius: 3,
   },
 
   editText: {
-    fontSize: '16@ms',
+    fontSize: `${FONT_TEXT}@ms`,
     fontWeight: 500,
     color: PROFILE_TEXT,
   },
 
   infoSection: {
     paddingInline: '3%',
-    paddingBlock: '10@s',
+    paddingBlock: `${SECTION_GAP}@s`,
     flexDirection: 'row',
   },
 
   infoColumn: {
     flex: 1,
-    gap: '10@s',
+    gap: `${SECTION_GAP}@s`,
   },
 
   infoRow: {
-    gap: '4@s',
+    gap: `${ITEM_GAP}@s`,
   },
 
   infoKey: {
-    fontSize: '16@ms',
-    fontWeight: 600,
+    fontSize: `${FONT_TEXT}@ms`,
+    fontWeight: 500,
     color: PROFILE_TEXT,
   },
 
   infoValue: {
-    marginInlineEnd: '5@s',
+    marginInlineEnd: `${ITEM_GAP}@s`,
     paddingInline: '5@s',
     paddingBlock: '3@s',
-    fontSize: '16@ms',
-    fontWeight: 500,
+    fontSize: `${FONT_TEXT}@ms`,
+    fontWeight: 400,
     color: PROFILE_ICON,
     borderWidth: 1,
     borderColor: SEPARATOR,
     borderRadius: 3,
   },
 
+  inputNeeded: {
+    color: '#e81f1f',
+  },
+
   notes: {
     paddingInline: '3%',
-    paddingBlockEnd: '10@s',
+    gap: `${SECTION_GAP}@s`,
   },
 
   noteInput: {
     paddingInline: '5@s',
     paddingBlock: '3@s',
-    fontSize: '16@ms',
-    fontWeight: 500,
+    fontSize: `${FONT_TEXT}@ms`,
+    fontWeight: 400,
     color: PROFILE_ICON,
     borderWidth: 1,
     borderColor: SEPARATOR,
     borderRadius: 3,
-  },
-
-  footer: {
-    bottom: 0,
-    backgroundColor: MAIN_BACKGROUND,
-  },
-
-  barcode: {
-    paddingInline: '3%',
-    paddingBlockStart: '10@s',
-    alignSelf: 'center',
   },
 
   sheetContent: {

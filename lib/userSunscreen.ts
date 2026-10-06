@@ -32,14 +32,15 @@ export const COVERAGE_OPTIONS = [
 ]
 
 export const SORT_OPTIONS = [
-  { label: 'Created At', value: 'created' },
-  { label: 'Updated At', value: 'updated' },
-  { label: 'Nickname', value: 'alpha_nickname' },
-  { label: 'Name', value: 'alpha_name' },
-  { label: 'Brand', value: 'alpha_brand'},
+  { label: 'Favorites', value: 'favorites' },
   { label: 'SPF', value: 'spf' },
   { label: 'Duration', value: 'duration' },
   { label: 'Water Resistance', value: 'water_duration' },
+  { label: 'Nickname', value: 'alpha_nickname' },
+  { label: 'Name', value: 'alpha_name' },
+  { label: 'Brand', value: 'alpha_brand' },
+  { label: 'Created At', value: 'created' },
+  { label: 'Updated At', value: 'updated' },
 ] as const
 
 export type SortOptions = (typeof SORT_OPTIONS)[number]['value']
@@ -77,61 +78,71 @@ export interface UserSunscreen {
   synced_at: string | null
 }
 
-function compareNullableString(
+function compareString(
   a: string | null,
   b: string | null,
-  direction: 'asc' | 'desc' = 'asc'
+  direction: 'default' | 'reversed' = 'default'
 ): number {
   if (a === null && b === null) return 0
-  if (a === null) return 1
-  if (b === null) return -1
-  return direction === 'asc' ? a.localeCompare(b) : b.localeCompare(a)
+  if (a === null) return direction === 'reversed' ? -1 : 1
+  if (b === null) return direction === 'reversed' ? 1 : -1
+  return direction === 'default' ? a.localeCompare(b) : b.localeCompare(a)
 }
 
-function compareNullableNumber(
+function compareNumber(
   a: number | null,
   b: number | null,
-  direction: 'asc' | 'desc' = 'asc'
+  direction: 'default' | 'reversed' = 'default'
 ): number {
   if (a === null && b === null) return 0
-  if (a === null) return 1
-  if (b === null) return -1
-  return direction === 'asc' ? a - b : b - a
+  if (a === null) return direction === 'reversed' ? -1 : 1
+  if (b === null) return direction === 'reversed' ? 1 : -1
+  return direction === 'reversed' ? a - b : b - a
 }
 
-export type SortDirection = 'asc' | 'desc'
+export type SortDirection = 'default' | 'reversed'
 
 export function sortUserSunscreens(
   list: UserSunscreen[],
   sortOption: SortOptions,
-  direction: SortDirection = 'asc'
+  direction: SortDirection = 'default'
 ): UserSunscreen[] {
   const sorted = [...list]
 
   switch (sortOption) {
     case 'created':
-      return sorted.sort((a, b) => (direction === 'asc' ? a.id - b.id : b.id - a.id))
+      return sorted.sort((a, b) =>
+        direction === 'reversed' ? a.id - b.id : b.id - a.id
+      )
     case 'updated':
       return sorted.sort((a, b) =>
-        direction === 'asc'
+        direction === 'reversed'
           ? a.updated_at.localeCompare(b.updated_at)
           : b.updated_at.localeCompare(a.updated_at)
       )
+    case 'favorites':
+      return sorted.sort((a, b) =>
+        compareNumber(a.is_favorite, b.is_favorite, direction)
+      )
     case 'alpha_nickname':
-      return sorted.sort((a, b) => compareNullableString(a.nickname, b.nickname, direction))
+      return sorted.sort((a, b) =>
+        compareString(a.nickname, b.nickname, direction)
+      )
     case 'alpha_name':
-      return sorted.sort((a, b) => compareNullableString(a.name, b.name, direction))
+      return sorted.sort((a, b) => compareString(a.name, b.name, direction))
     case 'alpha_brand':
-      return sorted.sort((a, b) => compareNullableString(a.brand, b.brand, direction))
+      return sorted.sort((a, b) => compareString(a.brand, b.brand, direction))
     case 'spf':
-      return sorted.sort((a, b) => (direction === 'asc' ? a.spf - b.spf : b.spf - a.spf))
+      return sorted.sort((a, b) =>
+        direction === 'reversed' ? a.spf - b.spf : b.spf - a.spf
+      )
     case 'duration':
       return sorted.sort((a, b) =>
-        direction === 'asc' ? a.duration - b.duration : b.duration - a.duration
+        direction === 'reversed' ? a.duration - b.duration : b.duration - a.duration
       )
     case 'water_duration':
       return sorted.sort((a, b) =>
-        compareNullableNumber(a.water_duration, b.water_duration, direction)
+        compareNumber(a.water_duration, b.water_duration, direction)
       )
     default:
       return sorted

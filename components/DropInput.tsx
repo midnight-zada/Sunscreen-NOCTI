@@ -13,6 +13,8 @@ interface DropInputProps<Key extends keyof InsertUserSunscreen> {
   }[]
   initValue: InsertUserSunscreen[Key]
   setField: (key: Key, value: InsertUserSunscreen[Key]) => void
+  fontSize?: number
+  fontWeight?: 400 | 500 | 600
 }
 
 function DropInputComponent<Key extends keyof InsertUserSunscreen>({
@@ -20,17 +22,30 @@ function DropInputComponent<Key extends keyof InsertUserSunscreen>({
   data,
   initValue,
   setField,
+  fontSize = 15,
+  fontWeight = 400,
 }: DropInputProps<Key>) {
   const [value, setValue] = useState<InsertUserSunscreen[Key]>(initValue)
 
   const renderItem = (item: { label: string; value: InsertUserSunscreen[Key] }) => {
     return item.value === value ? (
       <View style={styles.itemSelect}>
-        <Text style={styles.itemSelectText}>{item.label}</Text>
+        <Text
+          style={[
+            styles.itemSelectText,
+            { fontSize: ms(fontSize), fontWeight: fontWeight },
+          ]}
+        >
+          {item.label}
+        </Text>
       </View>
     ) : (
       <View style={styles.item}>
-        <Text style={styles.itemText}>{item.label}</Text>
+        <Text
+          style={[styles.itemText, { fontSize: ms(fontSize), fontWeight: fontWeight }]}
+        >
+          {item.label}
+        </Text>
       </View>
     )
   }
@@ -42,7 +57,11 @@ function DropInputComponent<Key extends keyof InsertUserSunscreen>({
   return (
     <Dropdown
       style={styles.infoValue}
-      selectedTextStyle={styles.selectedText}
+      iconStyle={{ width: ms(fontSize + 2), height: ms(fontSize + 2) }}
+      selectedTextStyle={[
+        styles.selectedText,
+        { fontSize: ms(fontSize), fontWeight: fontWeight },
+      ]}
       containerStyle={styles.dropdownContainer}
       activeColor={SEPARATOR}
       data={data}
@@ -55,7 +74,10 @@ function DropInputComponent<Key extends keyof InsertUserSunscreen>({
       valueField="value"
       renderItem={renderItem}
       placeholder="Select item"
-      placeholderStyle={styles.selectedText}
+      placeholderStyle={[
+        styles.selectedText,
+        { fontSize: ms(fontSize), fontWeight: fontWeight },
+      ]}
       maxHeight={ms(155)}
       autoScroll={false}
     />
@@ -67,15 +89,13 @@ export default DropInputComponent
 const styles = ScaledSheet.create({
   infoValue: {
     paddingInline: '5@s',
-    paddingBlock: '3.1@s',
+    paddingBlock: '3@s',
     borderWidth: 1,
     borderColor: SEPARATOR,
     borderRadius: 3,
   },
 
   selectedText: {
-    fontSize: '16@ms',
-    fontWeight: 500,
     color: PROFILE_ICON,
   },
 
@@ -93,8 +113,6 @@ const styles = ScaledSheet.create({
   },
 
   itemText: {
-    fontSize: '16@ms',
-    fontWeight: 500,
     color: PROFILE_ICON,
   },
 
@@ -106,8 +124,6 @@ const styles = ScaledSheet.create({
   },
 
   itemSelectText: {
-    fontSize: '16@ms',
-    fontWeight: 500,
     color: PROFILE_TEXT,
   },
 })

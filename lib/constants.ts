@@ -36,3 +36,8 @@ export const WATER_COLOR = '#007bff'
 
 export const MAIN_BG_DARK = '#262b2e'
 export const SEPARATOR_BRIGHT = PROFILE_TEXT
+
+export const FONT_SUBTEXT = 13
+export const FONT_TEXT = 14
+export const FONT_HEADER = 15
+export const FONT_TITLE = 20
