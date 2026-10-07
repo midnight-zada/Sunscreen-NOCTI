@@ -15,7 +15,7 @@ export const getImageSize = async (
   return { width, height }
 }
 
-export const hexToRGB = (hex: string): [number, number, number] => {
+export const hexToRGB = (hex: string): RGB => {
   const stripped = hex.replace('#', '')
 
   if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(stripped))

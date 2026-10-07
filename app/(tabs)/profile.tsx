@@ -1,11 +1,14 @@
 import DebugProfile from '@/components/dev/DebugProfile'
 import ImageViewer from '@/components/ImageViewer'
+import Separator from '@/components/Separator'
+import { SEPARATOR_LIGHT_COLOR } from '@/constants/colors'
 import { useAppContext } from '@/context/AppContext'
-import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
+import { FONT_TITLE, MAIN_BACKGROUND, PROFILE_TEXT } from '@/lib/constants'
 import { getUserProfile, UserProfile } from '@/lib/userProfile'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
+import { StatusBar } from 'expo-status-bar'
 import { useCallback, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -42,13 +45,31 @@ export default function ProfileScreen() {
         },
       ]}
     >
+      <StatusBar style="light" />
       <View style={styles.header}>
-        <Pressable onPress={openSettings} hitSlop={7}>
-          <Ionicons name="settings-outline" size={moderateScale(28)} />
-        </Pressable>
-        <Pressable hitSlop={7}>
-          <Ionicons name="ellipsis-horizontal" size={moderateScale(28)} />
-        </Pressable>
+        <View style={styles.headerIcon}>
+          <Pressable onPress={openSettings} hitSlop={7}>
+            <Ionicons
+              name="settings-outline"
+              size={moderateScale(24)}
+              color={PROFILE_TEXT}
+            />
+          </Pressable>
+        </View>
+        <View style={styles.headerName}>
+          <Text style={[styles.text, styles.displayName]} numberOfLines={1}>
+            {profileData?.display_name}
+          </Text>
+        </View>
+        <View style={[styles.headerIcon, { alignItems: 'flex-end' }]}>
+          <Pressable hitSlop={7}>
+            <Ionicons
+              name="ellipsis-horizontal"
+              size={moderateScale(24)}
+              color={PROFILE_TEXT}
+            />
+          </Pressable>
+        </View>
       </View>
       <View style={[styles.main]}>
         <Pressable
@@ -73,21 +94,32 @@ export default function ProfileScreen() {
         </Pressable>
         <View style={[styles.badgeSection]}>
           <View style={[styles.badge, styles.firstBadge]}>
-            <Ionicons name="help-outline" size={moderateScale(40)} color="#222" />
+            <Ionicons
+              name="help-outline"
+              size={moderateScale(40)}
+              color={SEPARATOR_LIGHT_COLOR}
+            />
           </View>
           <View style={[styles.badge, styles.secondBadge]}>
-            <Ionicons name="help-outline" size={moderateScale(40)} color="#222" />
+            <Ionicons
+              name="help-outline"
+              size={moderateScale(40)}
+              color={SEPARATOR_LIGHT_COLOR}
+            />
           </View>
           <View style={[styles.badge, styles.thirdBadge]}>
-            <Ionicons name="help-outline" size={moderateScale(40)} color="#222" />
+            <Ionicons
+              name="help-outline"
+              size={moderateScale(40)}
+              color={SEPARATOR_LIGHT_COLOR}
+            />
           </View>
         </View>
       </View>
       <View style={styles.profileText}>
-        <Text style={styles.displayName}>{profileData?.display_name}</Text>
-        <Text style={styles.bio}>{profileData?.bio}</Text>
+        <Text style={[styles.text, styles.bio]}>{profileData?.bio}</Text>
       </View>
-      <View style={styles.seperator} />
+      <Separator color={SEPARATOR_LIGHT_COLOR} />
       <DebugProfile refreshProfile={refreshProfile} />
       <ImageViewer
         isFocused={isImageFocused}
@@ -101,13 +133,25 @@ export default function ProfileScreen() {
 const styles = ScaledSheet.create({
   profile: {
     flex: 1,
-    backgroundColor: PROFILE_SCREEN_BG_COLOR,
+    backgroundColor: MAIN_BACKGROUND,
   },
 
   header: {
+    marginBlockStart: '10@s',
     paddingInline: '4%',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignContent: 'center',
+  },
+
+  headerIcon: {
+    width: '12%',
+    justifyContent: 'center',
+  },
+
+  headerName: {
+    maxWidth: '70%',
+    justifyContent: 'center',
   },
 
   main: {
@@ -123,15 +167,14 @@ const styles = ScaledSheet.create({
     aspectRatio: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 23,
-    borderWidth: '1.8@s',
+    borderRadius: 30,
+    borderWidth: '2@s',
   },
 
   profilePicture: {
-    width: '98.8@s',
+    width: '97@s',
     aspectRatio: 1,
-    backgroundColor: '#4c4c4c',
-    borderRadius: 20,
+    borderRadius: 26,
     overflow: 'hidden',
   },
 
@@ -152,7 +195,7 @@ const styles = ScaledSheet.create({
     aspectRatio: 1 / 1.3,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: '#222',
+    borderColor: SEPARATOR_LIGHT_COLOR,
     borderWidth: '2.5@s',
     borderRadius: 12,
   },
@@ -163,6 +206,10 @@ const styles = ScaledSheet.create({
 
   thirdBadge: {},
 
+  text: {
+    color: PROFILE_TEXT,
+  },
+
   profileText: {
     paddingInline: '3%',
     gap: '5@s',
@@ -170,18 +217,12 @@ const styles = ScaledSheet.create({
   },
 
   displayName: {
-    fontSize: '34@ms',
+    fontSize: `${FONT_TITLE}@s`,
     fontWeight: 600,
   },
 
   bio: {
     fontSize: '14@ms',
     fontWeight: 500,
-  },
-
-  seperator: {
-    width: '100%',
-    height: '1@s',
-    backgroundColor: '#c5c5c5',
   },
 })

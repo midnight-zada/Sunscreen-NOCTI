@@ -36,7 +36,7 @@ const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null
 export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const { db, userId } = useAppContext()
   const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[]>([])
-  const [sortOption, setSortOption] = useState<SortOptions>('created')
+  const [sortOption, setSortOption] = useState<SortOptions>('favorites')
   const [sortDirection, setSortDirection] = useState<SortDirection>('default')
 
   const toggleSortDirection = useCallback(() => {
