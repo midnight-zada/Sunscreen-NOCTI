@@ -156,7 +156,7 @@ const BorderButton = ({
   } else if (borderStyle === 1) {
     bgOpacity = [0.1, 0.1]
     bgLocations = [0.01, 0.2]
-    borderOffset = 0.2
+    borderOffset = 0.3
     borderOpacity = 0.2
   } else {
     bgOpacity = [0.15, 0.1]

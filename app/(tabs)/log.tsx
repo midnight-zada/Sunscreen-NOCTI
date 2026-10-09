@@ -2,8 +2,10 @@ import BorderButton from '@/components/BorderButton'
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import Separator from '@/components/Separator'
 import SunscreenCard from '@/components/SunscreenCard'
+import { HEADER_TITLE_SIZE } from '@/constants/text'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
+  FONT_HEADER,
   MAIN_BACKGROUND,
   MAIN_BG_DARK,
   PROFILE_BACKGROUND,
@@ -44,69 +46,80 @@ export default function LogScreen() {
     }, [refreshUserSunscreens])
   )
 
-  const openEditSunscreen = (id: number) => {
-    router.push({ pathname: '/editUserSunscreen', params: { id } })
-  }
-
-  const openMoreInfo = (id: number) => {
-    router.push({ pathname: '/viewUserSunscreen', params: { id } })
-  }
-
   return (
     <View style={styles.log}>
       <StatusBar style="light" />
       <View style={[styles.header, { paddingBlockStart: insets.top }]}>
-        <View style={styles.headerOptions}>
+        <View style={styles.headerTextSection}>
+          <View style={styles.headerButton} />
           <Text style={styles.headerText}>Sunscreens</Text>
-        </View>
-      </View>
-      <Separator />
-      <View style={styles.sortHeader}>
-        <FlatList
-          style={styles.sortHeaderList}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={SORT_OPTIONS}
-          keyExtractor={(option) => option.value}
-          contentContainerStyle={styles.sortHeaderContent}
-          renderItem={({ item: option }) => (
-            <BorderButton
-              style={[
-                styles.sortChip,
-                sortOption === option.value && styles.sortChipActive,
-              ]}
-              color={sortOption === option.value ? '#fff' : 'none'}
-              borderRadius={ms(CHIP_RADIUS)}
-              borderStyle={1}
-              onPress={() => setSortOption(option.value)}
+          <View
+            style={[
+              styles.headerButton,
+              {
+                alignItems: 'flex-end',
+              },
+            ]}
+          >
+            <Pressable
+              onPress={() =>
+                router.push({ pathname: '/editUserSunscreen', params: { id: -1 } })
+              }
+              hitSlop={ms(5)}
             >
-              <Text
+              <Ionicons name="add" size={ms(22)} color={PROFILE_TEXT} />
+            </Pressable>
+          </View>
+        </View>
+        <Separator />
+        <View style={styles.sortHeader}>
+          <FlatList
+            style={styles.sortHeaderList}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={SORT_OPTIONS}
+            keyExtractor={(option) => option.value}
+            contentContainerStyle={styles.sortHeaderContent}
+            renderItem={({ item: option }) => (
+              <BorderButton
                 style={[
-                  styles.sortChipText,
-                  sortOption === option.value && styles.sortChipTextActive,
+                  styles.sortChip,
+                  sortOption === option.value && styles.sortChipActive,
                 ]}
+                color={sortOption === option.value ? '#fff' : 'none'}
+                borderRadius={ms(CHIP_RADIUS)}
+                borderStyle={1}
+                onPress={() => setSortOption(option.value)}
               >
-                {option.label}
-              </Text>
-            </BorderButton>
-          )}
-        />
-        <Pressable style={styles.sortDirection} onPress={toggleSortDirection}>
-          <Ionicons
-            name={sortDirection === 'reversed' ? 'arrow-up' : 'arrow-down'}
-            size={scale(18)}
-            color={PROFILE_TEXT}
+                <Text
+                  style={[
+                    styles.sortChipText,
+                    sortOption === option.value && styles.sortChipTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </BorderButton>
+            )}
           />
-        </Pressable>
+          <Pressable style={styles.sortDirection} onPress={toggleSortDirection}>
+            <Ionicons
+              name={sortDirection === 'reversed' ? 'arrow-up' : 'arrow-down'}
+              size={scale(18)}
+              color={PROFILE_TEXT}
+            />
+          </Pressable>
+        </View>
       </View>
       <Separator />
       <FlatList
         style={styles.list}
+        showsVerticalScrollIndicator={false}
         data={userSunscreenList}
         keyExtractor={(value) => value.id.toString()}
         renderItem={({ item }) => (
           <>
-            <Separator />
+            <Separator height={1} />
             <Pressable onPress={() => setFocusedId(item.id)}>
               <SunscreenCard
                 sunscreen={item}
@@ -117,7 +130,7 @@ export default function LogScreen() {
         )}
         ListFooterComponent={
           <>
-            <Separator />
+            <Separator height={0.8} />
             <DebugUserSunscreen refreshLog={refreshUserSunscreens} />
             <View style={{ height: scale(100) }} />
           </>
@@ -137,15 +150,21 @@ const styles = ScaledSheet.create({
     backgroundColor: PROFILE_BACKGROUND,
   },
 
-  headerOptions: {
+  headerTextSection: {
+    paddingInline: '3%',
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingBlockStart: '5@s',
     paddingBlockEnd: '10@s',
   },
 
+  headerButton: {
+    width: '20%',
+  },
+
   headerText: {
-    fontSize: '16@ms',
+    fontSize: `${HEADER_TITLE_SIZE}@ms`,
     fontWeight: 600,
     color: '#fff',
   },
@@ -164,7 +183,6 @@ const styles = ScaledSheet.create({
   sortHeader: {
     flexDirection: 'row',
     paddingBlock: '4@s',
-    backgroundColor: PROFILE_BACKGROUND,
   },
 
   sortHeaderList: {

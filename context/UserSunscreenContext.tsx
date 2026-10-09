@@ -21,6 +21,7 @@ import { useAppContext } from './AppContext'
 
 export type UserSunscreenContextType = {
   userSunscreenList: UserSunscreen[]
+  hasLoaded: boolean
   sortOption: SortOptions
   setSortOption: (sortOption: SortOptions) => void
   sortDirection: SortDirection
@@ -36,6 +37,7 @@ const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null
 export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const { db, userId } = useAppContext()
   const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[]>([])
+  const [hasLoaded, setHasLoaded] = useState(false)
   const [sortOption, setSortOption] = useState<SortOptions>('favorites')
   const [sortDirection, setSortDirection] = useState<SortDirection>('default')
 
@@ -50,6 +52,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const refreshUserSunscreens = useCallback(async () => {
     setUserSunscreens(await getActiveUserSunscreens(db))
+    setHasLoaded(true)
   }, [db, userId])
 
   useEffect(() => {
@@ -89,14 +92,8 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const archiveUserSunscreen = useCallback(
     async (id: number) => {
-      try {
-        await setUserSunscreenArchive(db, id, 1)
-        await refreshUserSunscreens()
-      } catch (error) {
-        console.error(
-          `Failed To Archive: ${error instanceof Error ? error.message : String(error)}`
-        )
-      }
+      await setUserSunscreenArchive(db, id, 1)
+      await refreshUserSunscreens()
     },
     [db, refreshUserSunscreens]
   )
@@ -104,6 +101,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       userSunscreenList,
+      hasLoaded,
       sortOption,
       setSortOption,
       sortDirection,
@@ -115,6 +113,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
     }),
     [
       userSunscreenList,
+      hasLoaded,
       sortOption,
       sortDirection,
       toggleSortDirection,

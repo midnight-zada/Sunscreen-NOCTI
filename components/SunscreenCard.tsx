@@ -2,7 +2,6 @@ import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
   FONT_HEADER,
   FONT_SUBTEXT,
-  FONT_TEXT,
   MAIN_BACKGROUND,
   MAIN_BG_DARK,
   MODAL_BG,
@@ -13,7 +12,7 @@ import {
   SEPARATOR,
   SEPARATOR_BRIGHT,
   SUN_COLOR,
-  WATER_COLOR
+  WATER_COLOR,
 } from '@/lib/constants'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
@@ -26,7 +25,7 @@ import {
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { memo, useCallback, useRef, useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
 import BorderButton from './BorderButton'
@@ -58,6 +57,31 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
     ),
     []
   )
+
+  const deleteSunscreen = () => {
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this sunscreen?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            optionSheetRef.current?.dismiss()
+            await archiveUserSunscreen(sunscreen.id)
+            console.log(`Deleted Sunscreen ID: ${sunscreen.id}`)
+          } catch (error) {
+            Alert.alert(
+              'Something Went Wrong',
+              `${error instanceof Error ? error.message : String(error)}`
+            )
+            console.error(
+              `Failed To Delete: ${error instanceof Error ? error.message : String(error)}`
+            )
+          }
+        },
+      },
+    ])
+  }
 
   return (
     <View
@@ -96,21 +120,21 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                 params: { id: sunscreen.id },
               })
             }
-            hitSlop={4}
+            hitSlop={ms(5)}
           >
             <Text style={styles.nameText} numberOfLines={1}>
               {sunscreen.nickname !== null ? sunscreen.nickname : sunscreen.name}
             </Text>
           </Pressable>
           <View style={styles.badgeSection}>
-            <Pressable onPress={() => toggleFavorite(sunscreen.id)} hitSlop={4}>
+            <Pressable onPress={() => toggleFavorite(sunscreen.id)} hitSlop={ms(5)}>
               <Ionicons
                 name={isFavorite ? 'star' : 'star-outline'}
                 size={ms(20)}
                 color={isFavorite ? '#ffed4c' : PROFILE_ICON}
               />
             </Pressable>
-            <Pressable onPress={() => optionSheetRef.current?.present()} hitSlop={4}>
+            <Pressable onPress={() => optionSheetRef.current?.present()} hitSlop={ms(5)}>
               <Ionicons
                 name="ellipsis-vertical-outline"
                 size={ms(20)}
@@ -257,13 +281,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               <Text style={styles.optionText}>Edit</Text>
             </Pressable>
             <Separator />
-            <Pressable
-              style={styles.sunscreenOption}
-              onPress={() => {
-                archiveUserSunscreen(sunscreen.id)
-                optionSheetRef.current?.dismiss()
-              }}
-            >
+            <Pressable style={styles.sunscreenOption} onPress={deleteSunscreen}>
               <Text style={styles.optionText}>Delete</Text>
             </Pressable>
           </View>
@@ -331,13 +349,13 @@ const styles = ScaledSheet.create({
   badgeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: '8@ms',
+    gap: '10@ms',
     paddingInlineStart: '6@ms',
   },
 
   seperator: {
     width: '100%',
-    height: StyleSheet.hairlineWidth,
+    height: 1,
     marginBlock: '5@s',
     backgroundColor: SEPARATOR,
     marginInlineEnd: '-3%',

@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -37,13 +37,17 @@ const ViewUserSunscreen = () => {
   const insets = useSafeAreaInsets()
   const { id } = useLocalSearchParams<{ id: string }>()
   const sunscreenId = Number(id)
-  const { getById, toggleFavorite } = useUserSunscreens()
+  const { getById, hasLoaded, toggleFavorite } = useUserSunscreens()
 
   const [focusImageSource, setFocuseImageSource] = useState<string | null>(null)
   const [isImageFocused, setIsImageFocused] = useState(false)
 
   const sunscreen = getById(sunscreenId)
   const isFavorite = sunscreen?.is_favorite === 1
+
+  useEffect(() => {
+    if (hasLoaded && !sunscreen && router.canGoBack()) router.back()
+  }, [hasLoaded, sunscreen])
 
   const returnBack = useCallback(() => {
     router.back()

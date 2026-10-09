@@ -67,7 +67,7 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       is_archived INTEGER NOT NULL DEFAULT 0,
 
       -- copied from sunscreen at save time
-      name TEXT NOT NULL,
+      name TEXT,
       brand TEXT,
       spf INTEGER NOT NULL,
       type TEXT,

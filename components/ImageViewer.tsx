@@ -1,6 +1,6 @@
 import { Image } from 'expo-image'
-import { Dispatch, SetStateAction } from 'react'
-import { Modal, Pressable, StyleSheet } from 'react-native'
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
+import { Animated, Modal, Pressable, StyleSheet } from 'react-native'
 
 interface ViewImageProps {
   isFocused: boolean
@@ -9,20 +9,43 @@ interface ViewImageProps {
 }
 
 const ImageViewer = ({ isFocused, setIsFocused, source }: ViewImageProps) => {
+  const opacity = useRef(new Animated.Value(0)).current
+  const [modalVisible, setModalVisible] = useState(isFocused)
+
+  useEffect(() => {
+    if (isFocused) {
+      setModalVisible(true)
+    } else {
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 100,
+        useNativeDriver: true,
+      }).start(() => setModalVisible(false))
+    }
+  }, [isFocused, opacity])
+
   return (
     <Modal
-      visible={isFocused}
+      visible={modalVisible}
       transparent
-      animationType="fade"
+      animationType='none'
+      onShow={() => {
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }).start()
+      }}
       onRequestClose={() => setIsFocused(false)}
     >
-      <Pressable style={styles.imageModalBackdrop} onPress={() => setIsFocused(false)}>
+      <Animated.View style={[styles.imageModalBackdrop, { opacity }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={() => setIsFocused(false)} />
         <Image
           source={source ? source : require('../assets/images/placeholder.jpg')}
           style={styles.imageModalImage}
           contentFit="contain"
         />
-      </Pressable>
+      </Animated.View>
     </Modal>
   )
 }

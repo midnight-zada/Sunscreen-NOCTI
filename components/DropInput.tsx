@@ -1,9 +1,14 @@
 import { MAIN_BACKGROUND, PROFILE_ICON, PROFILE_TEXT, SEPARATOR } from '@/lib/constants'
 import { InsertUserSunscreen } from '@/lib/userSunscreen'
-import { useEffect, useState } from 'react'
-import { Text, View } from 'react-native'
-import { Dropdown } from 'react-native-element-dropdown'
+import { RefObject, useEffect, useRef, useState } from 'react'
+import { Keyboard, Pressable, Text, View } from 'react-native'
+import { Dropdown, IDropdownRef } from 'react-native-element-dropdown'
 import { ms, ScaledSheet } from 'react-native-size-matters'
+
+let pendingDropdown: {
+  ref: RefObject<IDropdownRef | null>
+  setIsPending: (value: boolean) => void
+} | null = null
 
 interface DropInputProps<Key extends keyof InsertUserSunscreen> {
   type: Key
@@ -26,6 +31,20 @@ function DropInputComponent<Key extends keyof InsertUserSunscreen>({
   fontWeight = 400,
 }: DropInputProps<Key>) {
   const [value, setValue] = useState<InsertUserSunscreen[Key]>(initValue)
+  const [isPending, setIsPending] = useState(false)
+  const dropdownRef = useRef<IDropdownRef>(null)
+
+  useEffect(() => {
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      if (pendingDropdown?.ref === dropdownRef) {
+        pendingDropdown = null
+        dropdownRef.current?.open()
+        setIsPending(false)
+      }
+    })
+
+    return () => hideSub.remove()
+  }, [])
 
   const renderItem = (item: { label: string; value: InsertUserSunscreen[Key] }) => {
     return item.value === value ? (
@@ -55,32 +74,48 @@ function DropInputComponent<Key extends keyof InsertUserSunscreen>({
   }, [initValue])
 
   return (
-    <Dropdown
-      style={styles.infoValue}
-      iconStyle={{ width: ms(fontSize + 2), height: ms(fontSize + 2) }}
-      selectedTextStyle={[
-        styles.selectedText,
-        { fontSize: ms(fontSize), fontWeight: fontWeight },
-      ]}
-      containerStyle={styles.dropdownContainer}
-      activeColor={SEPARATOR}
-      data={data}
-      value={value}
-      onChange={(item) => {
-        setValue(item.value)
-        setField(type, item.value)
-      }}
-      labelField="label"
-      valueField="value"
-      renderItem={renderItem}
-      placeholder="Select item"
-      placeholderStyle={[
-        styles.selectedText,
-        { fontSize: ms(fontSize), fontWeight: fontWeight },
-      ]}
-      maxHeight={ms(155)}
-      autoScroll={false}
-    />
+    <Pressable onPress={() => dropdownRef.current?.open()}>
+      <Dropdown
+        ref={dropdownRef}
+        style={styles.infoValue}
+        iconStyle={{ width: ms(fontSize + 2), height: ms(fontSize + 2) }}
+        selectedTextStyle={[
+          styles.selectedText,
+          isPending && styles.selectedTextPending,
+          { fontSize: ms(fontSize), fontWeight: fontWeight },
+        ]}
+        containerStyle={styles.dropdownContainer}
+        activeColor={SEPARATOR}
+        data={data}
+        value={value}
+        onChange={(item) => {
+          setValue(item.value)
+          setField(type, item.value)
+        }}
+        labelField="label"
+        valueField="value"
+        renderItem={renderItem}
+        onFocus={() => {
+          if (Keyboard.isVisible()) {
+            if (pendingDropdown && pendingDropdown.ref !== dropdownRef) {
+              pendingDropdown.setIsPending(false)
+            }
+            pendingDropdown = { ref: dropdownRef, setIsPending }
+            setIsPending(true)
+            dropdownRef.current?.close()
+            Keyboard.dismiss()
+          }
+        }}
+        placeholder="Select item"
+        placeholderStyle={[
+          styles.selectedText,
+          isPending && styles.selectedTextPending,
+          { fontSize: ms(fontSize), fontWeight: fontWeight },
+        ]}
+        maxHeight={ms(155)}
+        autoScroll={false}
+      />
+    </Pressable>
   )
 }
 
@@ -89,7 +124,7 @@ export default DropInputComponent
 const styles = ScaledSheet.create({
   infoValue: {
     paddingInline: '5@s',
-    paddingBlock: '3@s',
+    paddingBlock: '4@s',
     borderWidth: 1,
     borderColor: SEPARATOR,
     borderRadius: 3,
@@ -97,6 +132,10 @@ const styles = ScaledSheet.create({
 
   selectedText: {
     color: PROFILE_ICON,
+  },
+
+  selectedTextPending: {
+    opacity: 0.5,
   },
 
   dropdownContainer: {
