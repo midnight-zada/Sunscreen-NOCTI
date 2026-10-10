@@ -1,5 +1,9 @@
 import {
+  commitUserSunscreenImage,
+  editUserSunscreen,
   getActiveUserSunscreens,
+  InsertUserSunscreen,
+  insertUserSunscreen,
   setUserSunscreenArchive,
   setUserSunscreenFavorite,
   SortDirection,
@@ -30,6 +34,7 @@ export type UserSunscreenContextType = {
   refreshUserSunscreens: () => Promise<void>
   toggleFavorite: (id: number) => Promise<void>
   archiveUserSunscreen: (id: number) => Promise<void>
+  duplicateSunscreen: (sunscreen: UserSunscreen | InsertUserSunscreen) => Promise<number>
 }
 
 const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null)
@@ -98,6 +103,53 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
     [db, refreshUserSunscreens]
   )
 
+  const duplicateSunscreen = useCallback(
+    async (sunscreen: UserSunscreen | InsertUserSunscreen) => {
+      let insertSunscreen: InsertUserSunscreen = sunscreen
+      let dest: [string | null, string | null] = [null, null]
+
+      if ('id' in sunscreen) {
+        const { id, is_archived, created_at, updated_at, synced_at, ...leftover } =
+          sunscreen
+        insertSunscreen = leftover
+      }
+
+      const dupeId = await insertUserSunscreen(db, {
+        ...insertSunscreen,
+        user_id: userId,
+        cover_uri: null,
+        image_uri: null,
+      })
+
+      if (sunscreen.cover_uri)
+        dest[0] = await commitUserSunscreenImage(
+          dupeId,
+          sunscreen.cover_uri.split('?')[0],
+          'cover',
+          1
+        )
+
+      if (sunscreen.image_uri)
+        dest[1] = await commitUserSunscreenImage(
+          dupeId,
+          sunscreen.image_uri.split('?')[0],
+          'product',
+          1
+        )
+
+      await editUserSunscreen(db, dupeId, {
+        ...insertSunscreen,
+        user_id: userId,
+        cover_uri: dest[0],
+        image_uri: dest[1],
+      })
+      await refreshUserSunscreens()
+
+      return dupeId
+    },
+    [db, userId, insertUserSunscreen, refreshUserSunscreens]
+  )
+
   const value = useMemo(
     () => ({
       userSunscreenList,
@@ -110,6 +162,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       refreshUserSunscreens,
       toggleFavorite,
       archiveUserSunscreen,
+      duplicateSunscreen,
     }),
     [
       userSunscreenList,
@@ -121,6 +174,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       refreshUserSunscreens,
       toggleFavorite,
       archiveUserSunscreen,
+      duplicateSunscreen,
     ]
   )
 

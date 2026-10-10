@@ -107,7 +107,7 @@ const getFieldErrors = (sunscreen: InsertUserSunscreen) => {
 const EditUserSunscreen = () => {
   const insets = useSafeAreaInsets()
   const { db, userId } = useAppContext()
-  const { archiveUserSunscreen } = useUserSunscreens()
+  const { archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
   const { id } = useLocalSearchParams<{ id: string }>()
   const { getById, refreshUserSunscreens } = useUserSunscreens()
 
@@ -129,6 +129,7 @@ const EditUserSunscreen = () => {
   const [isImageFocused, setIsImageFocused] = useState(false)
 
   const isComfirming = useRef(false)
+  const isDuplicating = useRef(false)
 
   const discardAllStagedImages = useCallback(() => {
     for (const uri of Object.values(stagedImages.current)) {
@@ -346,6 +347,32 @@ const EditUserSunscreen = () => {
     editSheetRef.current?.close()
   }, [imageType, setEditSunscreenField])
 
+  const onDuplicateSunscreen = async () => {
+    if (isDuplicating.current) return
+    isDuplicating.current = true
+
+    try {
+      if (!editSunscreen) return
+      const dupeId = await duplicateSunscreen(editSunscreen)
+      router.back()
+      notificationAsync(NotificationFeedbackType.Success)
+      console.log(
+        `Duplicated Sunscreen [${editSunscreen.nickname ? editSunscreen.nickname : editSunscreen.name}] to Sunscreen [${dupeId}]`
+      )
+    } catch (error) {
+      Alert.alert(
+        'Something Went Wrong',
+        `${error instanceof Error ? error.message : String(error)}`
+      )
+      notificationAsync(NotificationFeedbackType.Error)
+      console.error(
+        `Failed To Duplicate: ${error instanceof Error ? error.message : String(error)}`
+      )
+    } finally {
+      isDuplicating.current = false
+    }
+  }
+
   const deleteSunscreen = () => {
     Alert.alert('Confirm Delete', 'Are you sure you want to delete this sunscreen?', [
       { text: 'Cancel', style: 'cancel' },
@@ -356,12 +383,14 @@ const EditUserSunscreen = () => {
           try {
             await archiveUserSunscreen(sunscreenId)
             router.back()
+            notificationAsync(NotificationFeedbackType.Success)
             console.log(`Deleted Sunscreen ID: ${sunscreenId}`)
           } catch (error) {
             Alert.alert(
               'Something Went Wrong',
               `${error instanceof Error ? error.message : String(error)}`
             )
+            notificationAsync(NotificationFeedbackType.Error)
             console.error(
               `Failed To Delete: ${error instanceof Error ? error.message : String(error)}`
             )
@@ -691,9 +720,21 @@ const EditUserSunscreen = () => {
           {mode === 'edit' && (
             <>
               <Separator scaleMargin={SECTION_GAP} />
-              <Pressable style={styles.deleteButton} onPress={deleteSunscreen}>
-                <Text style={[styles.infoKey, styles.deleteText]}>Delete</Text>
-              </Pressable>
+              <View style={styles.bottomButtonSection}>
+                <Pressable
+                  style={[styles.bottomButtons, { borderColor: PROFILE_ICON }]}
+                  onPress={onDuplicateSunscreen}
+                >
+                  <Text
+                    style={[styles.infoKey, styles.deleteText, { color: PROFILE_ICON }]}
+                  >
+                    Duplicate
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.bottomButtons} onPress={deleteSunscreen}>
+                  <Text style={[styles.infoKey, styles.deleteText]}>Delete</Text>
+                </Pressable>
+              </View>
             </>
           )}
           <View style={{ height: insets.bottom }} />
@@ -750,7 +791,7 @@ const EditUserSunscreen = () => {
                   style={styles.modalPictureIcon}
                 />
                 {isWaitingLibrary ? (
-                  <LoadingDots color={'#000'} size={scale(5)} />
+                  <LoadingDots size={scale(5)} />
                 ) : (
                   <Text style={styles.modalPictureText}>Choose from library</Text>
                 )}
@@ -766,7 +807,7 @@ const EditUserSunscreen = () => {
                   style={styles.modalPictureIcon}
                 />
                 {isWaitingPhoto ? (
-                  <LoadingDots color={'#000'} size={scale(5)} />
+                  <LoadingDots size={scale(5)} />
                 ) : (
                   <Text style={styles.modalPictureText}>Take photo</Text>
                 )}
@@ -990,8 +1031,14 @@ const styles = ScaledSheet.create({
     borderRadius: 3,
   },
 
-  deleteButton: {
+  bottomButtonSection: {
     marginInline: '3%',
+    flexDirection: 'row',
+    gap: `${SECTION_GAP}@s`,
+  },
+
+  bottomButtons: {
+    flex: 1,
     alignItems: 'center',
     paddingBlock: '7@s',
     borderWidth: '1.5@s',

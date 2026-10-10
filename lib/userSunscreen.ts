@@ -345,7 +345,8 @@ export async function takeUserSunscreenPhoto(
 export async function commitUserSunscreenImage(
   userSunscreenId: number,
   stagedUri: string,
-  type: ImageType
+  type: ImageType,
+  copy: 0 | 1 = 0
 ): Promise<string> {
   const dir = new Directory(Paths.document, 'images/user_sunscreen')
   if (!dir.exists) dir.create({ intermediates: true })
@@ -354,7 +355,9 @@ export async function commitUserSunscreenImage(
   if (dest.exists) dest.delete()
 
   const staged = new File(stagedUri)
-  staged.move(dest)
+
+  if (copy) staged.copy(dest)
+  else staged.move(dest)
 
   return `${dest.uri}?v=${Date.now()}`
 }

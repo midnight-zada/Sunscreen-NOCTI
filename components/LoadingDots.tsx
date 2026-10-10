@@ -1,3 +1,4 @@
+import { PROFILE_TEXT } from '@/lib/constants'
 import { useEffect, useRef } from 'react'
 import { Animated, Easing, View } from 'react-native'
 
@@ -35,7 +36,7 @@ const buildRanges = (index: number, size: number) => {
   return { inputRange, outputRange }
 }
 
-export const LoadingDots = ({ color = '#000', size = 7 }: LoadingDotsProps) => {
+export const LoadingDots = ({ color = PROFILE_TEXT, size = 7 }: LoadingDotsProps) => {
   const driver = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
