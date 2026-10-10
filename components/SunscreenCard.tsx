@@ -22,6 +22,7 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
+import { notificationAsync, NotificationFeedbackType } from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { memo, useCallback, useRef, useState } from 'react'
@@ -39,7 +40,7 @@ interface SunscreenCardProps {
 
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const insets = useSafeAreaInsets()
-  const { toggleFavorite, archiveUserSunscreen } = useUserSunscreens()
+  const { toggleFavorite, archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
   const [isImageFocused, setIsImageFocused] = useState(false)
@@ -58,6 +59,24 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
     []
   )
 
+  const onDuplicateSunscreen = async () => {
+    try {
+      const dupeId = await duplicateSunscreen(sunscreen)
+      optionSheetRef.current?.dismiss()
+      notificationAsync(NotificationFeedbackType.Success)
+      console.log(`Duplicated Sunscreen [${sunscreen.id}] to Sunscreen [${dupeId}]`)
+    } catch (error) {
+      Alert.alert(
+        'Something Went Wrong',
+        `${error instanceof Error ? error.message : String(error)}`
+      )
+      notificationAsync(NotificationFeedbackType.Error)
+      console.error(
+        `Failed To Duplicate: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
+
   const deleteSunscreen = () => {
     Alert.alert('Confirm Delete', 'Are you sure you want to delete this sunscreen?', [
       { text: 'Cancel', style: 'cancel' },
@@ -68,12 +87,14 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
           try {
             optionSheetRef.current?.dismiss()
             await archiveUserSunscreen(sunscreen.id)
+            notificationAsync(NotificationFeedbackType.Success)
             console.log(`Deleted Sunscreen ID: ${sunscreen.id}`)
           } catch (error) {
             Alert.alert(
               'Something Went Wrong',
               `${error instanceof Error ? error.message : String(error)}`
             )
+            notificationAsync(NotificationFeedbackType.Error)
             console.error(
               `Failed To Delete: ${error instanceof Error ? error.message : String(error)}`
             )
@@ -264,7 +285,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             </Pressable>
           </View>
           <View style={styles.sunscreenOptionSunscreen}>
-            <Pressable style={styles.sunscreenOption}>
+            <Pressable style={styles.sunscreenOption} onPress={onDuplicateSunscreen}>
               <Text style={styles.optionText}>Duplicate</Text>
             </Pressable>
             <Separator />

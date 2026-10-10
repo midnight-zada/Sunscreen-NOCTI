@@ -1,5 +1,7 @@
 import {
   getActiveUserSunscreens,
+  InsertUserSunscreen,
+  insertUserSunscreen,
   setUserSunscreenArchive,
   setUserSunscreenFavorite,
   SortDirection,
@@ -30,6 +32,7 @@ export type UserSunscreenContextType = {
   refreshUserSunscreens: () => Promise<void>
   toggleFavorite: (id: number) => Promise<void>
   archiveUserSunscreen: (id: number) => Promise<void>
+  duplicateSunscreen: (sunscreen: UserSunscreen | InsertUserSunscreen) => Promise<Number>
 }
 
 const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null)
@@ -98,6 +101,28 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
     [db, refreshUserSunscreens]
   )
 
+  const duplicateSunscreen = useCallback(
+    async (sunscreen: UserSunscreen | InsertUserSunscreen) => {
+      const insertSunscreen: InsertUserSunscreen =
+        'id' in sunscreen
+          ? (() => {
+              const { id, is_archived, created_at, updated_at, synced_at, ...leftover } =
+                sunscreen
+              return leftover
+            })()
+          : sunscreen
+
+      const dupeId = await insertUserSunscreen(db, {
+        ...insertSunscreen,
+        user_id: userId,
+      })
+      await refreshUserSunscreens()
+
+      return dupeId
+    },
+    [db, userId, insertUserSunscreen, refreshUserSunscreens]
+  )
+
   const value = useMemo(
     () => ({
       userSunscreenList,
@@ -110,6 +135,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       refreshUserSunscreens,
       toggleFavorite,
       archiveUserSunscreen,
+      duplicateSunscreen,
     }),
     [
       userSunscreenList,
@@ -121,6 +147,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       refreshUserSunscreens,
       toggleFavorite,
       archiveUserSunscreen,
+      duplicateSunscreen,
     ]
   )
 
