@@ -33,6 +33,7 @@ export const MODAL_BG = HEADER_SECONDARY
 
 export const SUN_COLOR = '#FFE100'
 export const WATER_COLOR = '#007bff'
+export const SUCCESS_COLOR = '#2ecc71'
 
 export const MAIN_BG_DARK = '#262b2e'
 export const SEPARATOR_BRIGHT = PROFILE_TEXT

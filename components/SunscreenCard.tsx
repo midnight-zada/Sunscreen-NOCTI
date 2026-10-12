@@ -1,3 +1,5 @@
+import { useAppContext } from '@/context/AppContext'
+import { useApplications } from '@/context/ApplicationContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
   FONT_HEADER,
@@ -11,6 +13,7 @@ import {
   PROFILE_TEXT,
   SEPARATOR,
   SEPARATOR_BRIGHT,
+  SUCCESS_COLOR,
   SUN_COLOR,
   WATER_COLOR,
 } from '@/lib/constants'
@@ -26,11 +29,12 @@ import { notificationAsync, NotificationFeedbackType } from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { memo, useCallback, useRef, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
 import BorderButton from './BorderButton'
 import ImageViewer from './ImageViewer'
+import LoadingDots from './LoadingDots'
 import Separator from './Separator'
 
 interface SunscreenCardProps {
@@ -40,13 +44,67 @@ interface SunscreenCardProps {
 
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const insets = useSafeAreaInsets()
+  const { userId } = useAppContext()
   const { toggleFavorite, archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
+  const { addApplication } = useApplications()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
   const [isImageFocused, setIsImageFocused] = useState(false)
   const isFavorite = sunscreen.is_favorite === 1
+  const isApplying = useRef(false)
 
-  const applySunscreen = async () => {}
+  const [applyStatus, setApplyStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const checkmarkOpacity = useRef(new Animated.Value(0)).current
+  const loadingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const applySunscreen = async () => {
+    if (isApplying.current) return
+    isApplying.current = true
+
+    loadingTimeout.current = setTimeout(() => {
+      setApplyStatus('loading')
+    }, 500)
+
+    try {
+      await addApplication({
+        user_id: userId,
+        user_sunscreen_id: sunscreen.id,
+        uvi_high: null,
+        uvi_low: null,
+        uvi_average: null,
+        is_water_exposed: isWaterApplication ? 1 : 0,
+        latitude: null,
+        longitude: null,
+        applied_at: new Date().toISOString(),
+      })
+
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
+
+      notificationAsync(NotificationFeedbackType.Success)
+      setApplyStatus('success')
+      checkmarkOpacity.setValue(1)
+      Animated.timing(checkmarkOpacity, {
+        toValue: 0,
+        duration: 500,
+        delay: 3000,
+        useNativeDriver: true,
+      }).start(() => setApplyStatus('idle'))
+    } catch (error) {
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
+      
+      setApplyStatus('idle')
+      Alert.alert(
+        'Something Went Wrong',
+        `${error instanceof Error ? error.message : String(error)}`
+      )
+      notificationAsync(NotificationFeedbackType.Error)
+      console.error(
+        `Failed To Apply: ${error instanceof Error ? error.message : String(error)}`
+      )
+    } finally {
+      isApplying.current = false
+    }
+  }
 
   const imageSource = sunscreen.cover_uri ? sunscreen.cover_uri : sunscreen.image_uri
 
@@ -244,8 +302,17 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               borderRadius={12}
               borderStyle={2}
               onPress={applySunscreen}
+              disabled={applyStatus !== 'idle'}
             >
-              <Text style={styles.applyText}>Apply</Text>
+              {applyStatus === 'loading' ? (
+                <LoadingDots size={ms(5)} />
+              ) : applyStatus === 'success' ? (
+                <Animated.View style={{ opacity: checkmarkOpacity }}>
+                  <Ionicons name="checkmark" size={ms(20)} color={SUCCESS_COLOR} />
+                </Animated.View>
+              ) : (
+                <Text style={styles.applyText}>Apply</Text>
+              )}
             </BorderButton>
           </View>
         </View>

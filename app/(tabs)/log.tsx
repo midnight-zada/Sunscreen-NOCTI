@@ -2,16 +2,15 @@ import BorderButton from '@/components/BorderButton'
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import Separator from '@/components/Separator'
 import SunscreenCard from '@/components/SunscreenCard'
-import { HEADER_TITLE_SIZE } from '@/constants/text'
+import { FONT_HEADER_TITLE } from '@/constants/text'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
 import {
-  FONT_HEADER,
   MAIN_BACKGROUND,
   MAIN_BG_DARK,
   PROFILE_BACKGROUND,
   PROFILE_ICON,
   PROFILE_TEXT,
-  SEPARATOR,
+  SEPARATOR
 } from '@/lib/constants'
 import { SORT_OPTIONS } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
@@ -164,7 +163,7 @@ const styles = ScaledSheet.create({
   },
 
   headerText: {
-    fontSize: `${HEADER_TITLE_SIZE}@ms`,
+    fontSize: `${FONT_HEADER_TITLE}@ms`,
     fontWeight: 600,
     color: '#fff',
   },

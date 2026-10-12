@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { KeyboardProvider } from 'react-native-keyboard-controller'
 
+import { ApplicationProvider } from '../context/ApplicationContext'
 import { AppContext, AppContextType } from '../context/AppContext'
 import { UserSunscreenProvider } from '../context/UserSunscreenContext'
 import { openDB } from '../lib/db'
@@ -31,13 +32,15 @@ export default function RootLayout() {
         <BottomSheetModalProvider>
           <AppContext.Provider value={ctx}>
             <UserSunscreenProvider>
-              <StatusBar style="dark" />
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="editProfile" />
-                <Stack.Screen name="editUserSunscreen" />
-                <Stack.Screen name="viewUserSunscreen" />
-              </Stack>
+              <ApplicationProvider>
+                <StatusBar style="dark" />
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="editProfile" />
+                  <Stack.Screen name="editUserSunscreen" />
+                  <Stack.Screen name="viewUserSunscreen" />
+                </Stack>
+              </ApplicationProvider>
             </UserSunscreenProvider>
           </AppContext.Provider>
         </BottomSheetModalProvider>

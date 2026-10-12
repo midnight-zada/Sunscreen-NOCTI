@@ -1,6 +1,6 @@
 import { SEPARATOR } from '@/lib/constants'
 import { LinearGradient, LinearGradientProps } from 'expo-linear-gradient'
-import { StyleSheet, View } from 'react-native'
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native'
 import { scale } from 'react-native-size-matters'
 
 interface SeperatorProps {
@@ -8,6 +8,7 @@ interface SeperatorProps {
   color?: string
   gradient?: Pick<LinearGradientProps, 'colors' | 'start' | 'end' | 'locations'>
   scaleMargin?: [number, number] | number
+  style?: StyleProp<ViewStyle>
 }
 
 const Separator = ({
@@ -15,6 +16,7 @@ const Separator = ({
   color = SEPARATOR,
   gradient,
   scaleMargin,
+  style,
 }: SeperatorProps) => {
   const [scaleStart, scaleEnd] = Array.isArray(scaleMargin)
     ? scaleMargin
@@ -28,20 +30,23 @@ const Separator = ({
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         {...gradient}
-        style={{ width: '100%', height, marginBlockStart, marginBlockEnd }}
+        style={[{ width: '100%', height, marginBlockStart, marginBlockEnd }, style]}
       />
     )
   }
 
   return (
     <View
-      style={{
-        width: '100%',
-        height,
-        backgroundColor: color,
-        marginBlockStart,
-        marginBlockEnd,
-      }}
+      style={[
+        {
+          width: '100%',
+          height,
+          backgroundColor: color,
+          marginBlockStart,
+          marginBlockEnd,
+        },
+        style,
+      ]}
     />
   )
 }
