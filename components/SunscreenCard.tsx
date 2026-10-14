@@ -25,7 +25,12 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import { notificationAsync, NotificationFeedbackType } from 'expo-haptics'
+import {
+  impactAsync,
+  ImpactFeedbackStyle,
+  notificationAsync,
+  NotificationFeedbackType,
+} from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { memo, useCallback, useRef, useState } from 'react'
@@ -91,7 +96,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
       }).start(() => setApplyStatus('idle'))
     } catch (error) {
       if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
-      
+
       setApplyStatus('idle')
       Alert.alert(
         'Something Went Wrong',
@@ -302,6 +307,13 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               borderRadius={12}
               borderStyle={2}
               onPress={applySunscreen}
+              onLongPress={() => {
+                router.push({
+                  pathname: '/viewUserSunscreen',
+                  params: { id: sunscreen.id },
+                })
+                impactAsync(ImpactFeedbackStyle.Rigid)
+              }}
               disabled={applyStatus !== 'idle'}
             >
               {applyStatus === 'loading' ? (

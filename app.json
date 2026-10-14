@@ -15,18 +15,6 @@
         "ITSAppUsesNonExemptEncryption": false
       }
     },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/placeholder.jpg",
-        "backgroundImage": "./assets/images/placeholder.jpg",
-        "monochromeImage": "./assets/images/placeholder.jpg"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.RECORD_AUDIO"],
-      "package": "com.midnightzada.SunscreenNOCTI"
-    },
     "web": {
       "output": "static",
       "favicon": "./assets/images/placeholder.jpg"
@@ -58,6 +46,21 @@
       "expo-status-bar",
       "expo-web-browser",
       "expo-localization",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Sunscreen-NOCTI to use your camera to scan a sunscreen barcode.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Sunscreen-NOCTI to use your location to estimate local UV index."
+        }
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
