@@ -5,7 +5,7 @@ export const SEPARATOR_WHITE_COLOR = '#5a5c5e'
 
 export const ERROR_RED = '#ac1515'
 
-export const NAVBAR_COLOR_T = 'rgba(12, 16, 20, 0.9)'
+export const NAVBAR_COLOR_T = 'rgba(12, 16, 20, 0.55)'
 
 export const UVI_UNKNOWN_COLOR = '#2f3237'
 export const UVI_LOW_COLOR = '#23ac0e'

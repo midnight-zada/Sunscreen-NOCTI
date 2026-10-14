@@ -1,10 +1,11 @@
 import { NAVBAR_COLOR_T } from '@/constants/colors'
-import { SEPARATOR } from '@/lib/constants'
 import { hexToRGB } from '@/lib/imageColor'
 import { Ionicons } from '@expo/vector-icons'
+import { BlurView } from 'expo-blur'
+import { GlassView } from 'expo-glass-effect'
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs'
 import { useEffect, useRef } from 'react'
-import { Pressable, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -14,7 +15,9 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ScaledSheet } from 'react-native-size-matters'
-import { BackgroundGradient, BorderGradient } from './BorderButton'
+import { BorderGradient } from './BorderButton'
+
+const AnimatedGlassView = Animated.createAnimatedComponent(GlassView)
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -49,18 +52,9 @@ export default function NavBar({ state, navigation }: BottomTabBarProps) {
       style={[styles.wrapper, { bottom: insets.bottom - 8 }]}
       pointerEvents="box-none"
     >
-      <Animated.View style={[styles.blurContainer, animatedContainerStyle]}>
-        <BackgroundGradient
-          rgb={hexToRGB(SEPARATOR)}
-          opacities={[0.7, 0.2]}
-          locations={[0.05, 0.5]}
-        />
-        <BorderGradient
-          rgb={hexToRGB(SEPARATOR)}
-          radius={28}
-          offset={0.03}
-          opacity={0.7}
-        />
+      <AnimatedGlassView style={[styles.navbar, animatedContainerStyle]}>
+        <BlurView intensity={8} tint="dark" style={StyleSheet.absoluteFill} />
+        <BorderGradient rgb={hexToRGB('#fff')} radius={32} offset={0.05} opacity={0.1} />
         {state.routes.map((route, index) => {
           const isActive = state.index === index
           const icons = ICONS[route.name] ?? ICONS.index
@@ -81,7 +75,7 @@ export default function NavBar({ state, navigation }: BottomTabBarProps) {
             </Pressable>
           )
         })}
-      </Animated.View>
+      </AnimatedGlassView>
     </View>
   )
 }
@@ -94,13 +88,13 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
   },
 
-  blurContainer: {
+  navbar: {
     flexDirection: 'row',
     width: '88%',
-    borderRadius: 32,
-    padding: 4,
+    borderRadius: 34,
     backgroundColor: NAVBAR_COLOR_T,
     overflow: 'hidden',
+    padding: '5@s',
   },
 
   tabButton: {
@@ -108,10 +102,10 @@ const styles = ScaledSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingBlock: '8@s',
-    borderRadius: 32,
+    borderRadius: 34,
   },
 
   activeTab: {
-    backgroundColor: SEPARATOR,
+    backgroundColor: 'rgba(129, 132, 136, 1)',
   },
 })
