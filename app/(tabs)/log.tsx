@@ -1,4 +1,5 @@
 import BorderButton from '@/components/BorderButton'
+import DebugApplication from '@/components/dev/DebugApplication'
 import DebugUserSunscreen from '@/components/dev/DebugUserSunscreen'
 import Separator from '@/components/Separator'
 import SunscreenCard from '@/components/SunscreenCard'
@@ -131,6 +132,7 @@ export default function LogScreen() {
           <>
             <Separator height={0.8} />
             <DebugUserSunscreen refreshLog={refreshUserSunscreens} />
+            <DebugApplication />
             <View style={{ height: scale(100) }} />
           </>
         }

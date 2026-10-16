@@ -1,10 +1,13 @@
 import ErrorScreen from '@/components/ErrorScreen'
 import ImageViewer from '@/components/ImageViewer'
+import MapLocationPicker, { MapCoordinate } from '@/components/MapLocationPicker'
 import Separator from '@/components/Separator'
-import { getUviColor, UVI_MODERATE_COLOR } from '@/constants/colors'
+import { getUviColor, SUCCESS_GREEN } from '@/constants/colors'
 import { useAppContext } from '@/context/AppContext'
 import { useApplications } from '@/context/ApplicationContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
+import { useCurrentLocation } from '@/hooks/useCurrentLocation'
+import { useUVIndex } from '@/hooks/useUVIndex'
 import {
   FONT_HEADER,
   FONT_TEXT,
@@ -21,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
 import { notificationAsync, NotificationFeedbackType } from 'expo-haptics'
 import { Image } from 'expo-image'
+import * as Location from 'expo-location'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -36,6 +40,7 @@ const INFO_SEPARATOR_GRADIENT = {
 
 const SECTION_GAP = 10
 const ITEM_GAP = 4
+const SINGLE_GAP = 6
 
 const PLACEHOLDER_IMAGE = require('../assets/images/placeholder.jpg')
 
@@ -46,11 +51,18 @@ const ViewUserSunscreen = () => {
   const { getById, hasLoaded, toggleFavorite } = useUserSunscreens()
   const { userId } = useAppContext()
   const { addApplication } = useApplications()
+  const { getCurrentLocation, isLocating } = useCurrentLocation()
+  const { getUVIndex, isLoadingUVI } = useUVIndex()
 
   const [focusImageSource, setFocuseImageSource] = useState<string | null>(null)
   const [isImageFocused, setIsImageFocused] = useState(false)
   const [appliedAt, setAppliedAt] = useState(() => new Date())
   const [isWaterExposed, setIsWaterExposed] = useState(false)
+  const [location, setLocation] = useState<MapCoordinate | null>(null)
+  const [locationName, setLocationName] = useState<string | null>(null)
+  const [uvIndex, setUvIndex] = useState<number | null>(null)
+  const [isUVIConfirmed, setIsUVIConfirmed] = useState(false)
+  const [isLocationPickerFocused, setIsLocationPickerFocused] = useState(false)
   const isApplying = useRef(false)
 
   const sunscreen = getById(sunscreenId)
@@ -59,6 +71,65 @@ const ViewUserSunscreen = () => {
   useEffect(() => {
     if (hasLoaded && !sunscreen && router.canGoBack()) router.back()
   }, [hasLoaded, sunscreen])
+
+  useEffect(() => {
+    let cancelled = false
+
+    getCurrentLocation().then((coordinate) => {
+      if (!cancelled && coordinate) setLocation((prev) => prev ?? coordinate)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [getCurrentLocation])
+
+  useEffect(() => {
+    setLocationName(null)
+    if (!location) return
+
+    let cancelled = false
+
+    Location.reverseGeocodeAsync(location)
+      .then(([place]) => {
+        if (cancelled) return
+
+        const cityState = [place?.district, place?.city, place?.region]
+          .filter(Boolean)
+          .join(', ')
+
+        setLocationName(cityState || null)
+      })
+      .catch((error) => {
+        console.error(
+          `Failed To Reverse Geocode: ${error instanceof Error ? error.message : String(error)}`
+        )
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [location])
+
+  useEffect(() => {
+    setUvIndex(null)
+    setIsUVIConfirmed(false)
+    if (!location) return
+
+    let cancelled = false
+
+    getUVIndex(location, appliedAt).then((value) => {
+      if (cancelled) return
+      setUvIndex(value)
+      setIsUVIConfirmed(true)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [location, appliedAt, getUVIndex])
+
+  const isUVIPending = isLocating || (location !== null && !isUVIConfirmed)
 
   const returnBack = useCallback(() => {
     router.back()
@@ -95,13 +166,14 @@ const ViewUserSunscreen = () => {
         uvi_low: null,
         uvi_average: null,
         is_water_exposed: isWaterExposed ? 1 : 0,
-        latitude: null,
-        longitude: null,
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
         applied_at: appliedAt.toISOString(),
       })
 
       setAppliedAt(new Date())
       setIsWaterExposed(false)
+      setLocation(null)
       router.back()
       notificationAsync(NotificationFeedbackType.Success)
       console.log(`Inserted Application [${added}]`)
@@ -117,10 +189,14 @@ const ViewUserSunscreen = () => {
     } finally {
       isApplying.current = false
     }
-  }, [addApplication, appliedAt, isWaterExposed, sunscreen, userId])
+  }, [addApplication, appliedAt, isWaterExposed, location, sunscreen, userId])
 
   const toggleWaterExposed = useCallback(() => {
     setIsWaterExposed((prev) => !prev)
+  }, [])
+
+  const openLocationPicker = useCallback(() => {
+    setIsLocationPickerFocused(true)
   }, [])
 
   const favoriteButton = (
@@ -304,12 +380,37 @@ const ViewUserSunscreen = () => {
         <ErrorScreen />
       )}
       <View style={[styles.footer, { paddingBlockEnd: insets.bottom }]}>
-        <Separator />
+        <Separator height={1} />
         <View style={styles.applySection}>
-          <View style={{ flexDirection: 'row' }}>
-            <View style={[styles.uviPill, { backgroundColor: getUviColor(null) }]}>
+          <View style={styles.applyRow}>
+            <Pressable
+              style={[
+                styles.locationButton,
+                location && styles.locationButtonActive,
+                isLoadingUVI && { backgroundColor: 'transparent' },
+              ]}
+              onPress={openLocationPicker}
+              hitSlop={8}
+              disabled={isLoadingUVI}
+            >
+              <Ionicons
+                name={location ? 'location' : 'location-outline'}
+                size={ms(FONT_TEXT + 3)}
+                color={PROFILE_TEXT}
+              />
+              <Text style={[styles.applyText, { color: PROFILE_TEXT }]}>
+                {location
+                  ? (locationName ?? `${location.latitude}, ${location.longitude}`)
+                  : 'Set Location'}
+              </Text>
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+            <View style={[styles.uviPill, { backgroundColor: getUviColor(uvIndex) }]}>
               <Text style={styles.uviText}>UVI</Text>
-              <Text style={styles.uviText}>N/A</Text>
+              <Text style={styles.uviText}>
+                {isUVIPending ? '--' : uvIndex !== null ? Math.round(uvIndex) : 'N/A'}
+              </Text>
             </View>
             <DateTimePicker
               value={appliedAt}
@@ -319,8 +420,10 @@ const ViewUserSunscreen = () => {
               accentColor={getUviColor(5)}
               maximumDate={new Date(Date.now() + 60 * 60 * 1000)}
               onValueChange={onDateTimeChange}
+              disabled={isLoadingUVI}
             />
           </View>
+
           <View style={styles.applyRow}>
             <Pressable
               style={[
@@ -349,6 +452,12 @@ const ViewUserSunscreen = () => {
         isFocused={isImageFocused}
         setIsFocused={setIsImageFocused}
         source={focusImageSource}
+      />
+      <MapLocationPicker
+        isFocused={isLocationPickerFocused}
+        setIsFocused={setIsLocationPickerFocused}
+        initialLocation={location}
+        onConfirm={setLocation}
       />
     </View>
   )
@@ -458,19 +567,13 @@ const styles = ScaledSheet.create({
 
   applySection: {
     paddingInline: '3%',
-    paddingBlock: SECTION_GAP,
-    gap: SECTION_GAP,
+    paddingBlock: `${SECTION_GAP}@s`,
+    gap: `${SINGLE_GAP}@s`,
   },
 
   applyRow: {
     flexDirection: 'row',
     gap: `${SECTION_GAP}@s`,
-  },
-
-  uviContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
   },
 
   uviPill: {
@@ -492,7 +595,7 @@ const styles = ScaledSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBlock: '7@s',
+    paddingBlock: '6@s',
     backgroundColor: PROFILE_TEXT,
     borderRadius: 999,
   },
@@ -510,6 +613,24 @@ const styles = ScaledSheet.create({
     backgroundColor: 'transparent',
     borderWidth: '1.5@s',
     borderColor: PROFILE_TEXT,
+  },
+
+  locationButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBlock: '6@s',
+    gap: '7@ms',
+    backgroundColor: 'transparent',
+    borderWidth: '1.5@s',
+    borderColor: PROFILE_TEXT,
+    borderRadius: 999,
+  },
+
+  locationButtonActive: {
+    backgroundColor: SUCCESS_GREEN,
+    borderColor: SUCCESS_GREEN,
   },
 
   waterToggleButtonActive: {

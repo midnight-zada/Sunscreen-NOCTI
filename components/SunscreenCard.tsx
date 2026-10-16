@@ -1,6 +1,7 @@
 import { useAppContext } from '@/context/AppContext'
 import { useApplications } from '@/context/ApplicationContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
+import { useCurrentLocation } from '@/hooks/useCurrentLocation'
 import {
   FONT_HEADER,
   FONT_SUBTEXT,
@@ -52,6 +53,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const { userId } = useAppContext()
   const { toggleFavorite, archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
   const { addApplication } = useApplications()
+  const { getCurrentLocation } = useCurrentLocation()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
   const [isImageFocused, setIsImageFocused] = useState(false)
@@ -71,6 +73,8 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
     }, 500)
 
     try {
+      const location = await getCurrentLocation()
+
       await addApplication({
         user_id: userId,
         user_sunscreen_id: sunscreen.id,
@@ -78,8 +82,8 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         uvi_low: null,
         uvi_average: null,
         is_water_exposed: isWaterApplication ? 1 : 0,
-        latitude: null,
-        longitude: null,
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
         applied_at: new Date().toISOString(),
       })
 

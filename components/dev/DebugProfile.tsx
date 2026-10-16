@@ -4,12 +4,16 @@ import {
   InsertUserProfile,
   insertUserProfile,
   pickProfileImage,
-  setProfileImage,
-  updateUserProfile,
+  setProfileImage
 } from '@/lib/userProfile'
+import {
+  impactAsync,
+  ImpactFeedbackStyle,
+  notificationAsync,
+  NotificationFeedbackType,
+} from 'expo-haptics'
 import { Pressable, Text, View } from 'react-native'
 import { ScaledSheet } from 'react-native-size-matters'
-import { impactAsync, ImpactFeedbackStyle, notificationAsync, NotificationFeedbackType } from 'expo-haptics'
 
 import { useAppContext } from '../../context/AppContext'
 
@@ -105,7 +109,7 @@ export default DebugProfile
 const styles = ScaledSheet.create({
   debugSection: {
     paddingInline: '3%',
-    paddingBlock: '30@s',
+    paddingBlock: '10@s',
     gap: '10@s',
   },
 

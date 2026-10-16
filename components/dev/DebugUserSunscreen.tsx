@@ -111,7 +111,7 @@ export default DebugUserSunscreen
 const styles = ScaledSheet.create({
   debugSection: {
     paddingInline: '3%',
-    paddingBlock: '30@s',
+    paddingBlock: '10@s',
     gap: '10@s',
   },
 
