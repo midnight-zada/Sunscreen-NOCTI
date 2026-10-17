@@ -54,16 +54,14 @@ async function fetchHourlyUVI(visit: LocationVisit): Promise<HourlyUVReading[] |
 
 export function useUVIndex() {
   const [isLoadingUVI, setIsLoadingUVI] = useState(false)
-  const isFetching = useRef(false)
+  const requestId = useRef(0)
 
   const [isLoadingUVIStats, setIsLoadingUVIStats] = useState(false)
   const isFetchingStats = useRef(false)
 
   const getUVIndex = useCallback(
     async (coordinate: MapCoordinate, time: Date): Promise<number | null> => {
-      if (isFetching.current) return null
-      isFetching.current = true
-
+      const id = ++requestId.current
       setIsLoadingUVI(true)
 
       try {
@@ -75,8 +73,7 @@ export function useUVIndex() {
 
         return reading?.uvIndex ?? null
       } finally {
-        isFetching.current = false
-        setIsLoadingUVI(false)
+        if (id === requestId.current) setIsLoadingUVI(false)
       }
     },
     []

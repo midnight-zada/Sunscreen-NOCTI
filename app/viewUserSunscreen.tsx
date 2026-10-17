@@ -57,6 +57,7 @@ const ViewUserSunscreen = () => {
   const [focusImageSource, setFocuseImageSource] = useState<string | null>(null)
   const [isImageFocused, setIsImageFocused] = useState(false)
   const [appliedAt, setAppliedAt] = useState(() => new Date())
+  const [uviWindow, setUviWindow] = useState(() => new Date())
   const [isWaterExposed, setIsWaterExposed] = useState(false)
   const [location, setLocation] = useState<MapCoordinate | null>(null)
   const [locationName, setLocationName] = useState<string | null>(null)
@@ -118,7 +119,7 @@ const ViewUserSunscreen = () => {
 
     let cancelled = false
 
-    getUVIndex(location, appliedAt).then((value) => {
+    getUVIndex(location, uviWindow).then((value) => {
       if (cancelled) return
       setUvIndex(value)
       setIsUVIConfirmed(true)
@@ -127,7 +128,7 @@ const ViewUserSunscreen = () => {
     return () => {
       cancelled = true
     }
-  }, [location, appliedAt, getUVIndex])
+  }, [location, uviWindow, getUVIndex])
 
   const isUVIPending = isLocating || (location !== null && !isUVIConfirmed)
 
@@ -151,7 +152,16 @@ const ViewUserSunscreen = () => {
 
   const onDateTimeChange = useCallback((_event: unknown, date: Date) => {
     const now = new Date(Date.now() + 60 * 60 * 1000)
-    setAppliedAt(date > now ? now : date)
+    const clamped = date > now ? now : date
+    setAppliedAt(clamped)
+    setUviWindow((prev) =>
+      clamped.getFullYear() === prev.getFullYear() &&
+      clamped.getMonth() === prev.getMonth() &&
+      clamped.getDate() === prev.getDate() &&
+      clamped.getHours() === prev.getHours()
+        ? prev
+        : clamped
+    )
   }, [])
 
   const applySunscreen = useCallback(async () => {
@@ -172,6 +182,7 @@ const ViewUserSunscreen = () => {
       })
 
       setAppliedAt(new Date())
+      setUviWindow(new Date())
       setIsWaterExposed(false)
       setLocation(null)
       router.back()
@@ -400,7 +411,8 @@ const ViewUserSunscreen = () => {
               />
               <Text style={[styles.applyText, { color: PROFILE_TEXT }]}>
                 {location
-                  ? (locationName ?? `${location.latitude}, ${location.longitude}`)
+                  ? (locationName ??
+                    `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`)
                   : 'Set Location'}
               </Text>
             </Pressable>

@@ -58,9 +58,9 @@ interface ImageEdgeGradientProps {
 }
 
 const ImageEdgeGradient = ({
-  color = '#ff0000',
+  color = '#000',
   borderRadius = 0,
-  blur = 2,
+  blur = 3,
   spread = 2,
   opacity = 1,
 }: ImageEdgeGradientProps) => {
@@ -107,6 +107,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
     }, 500)
 
     try {
+      const appliedAt = new Date().toISOString()
       const location = await getCurrentLocation()
 
       await addApplication({
@@ -118,7 +119,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         is_water_exposed: isWaterApplication ? 1 : 0,
         latitude: location?.latitude ?? null,
         longitude: location?.longitude ?? null,
-        applied_at: new Date().toISOString(),
+        applied_at: appliedAt,
       })
 
       if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
@@ -471,7 +472,7 @@ const styles = ScaledSheet.create({
     aspectRatio: 1,
     backgroundColor: PLACEHOLDER_BG,
     borderRadius: IMAGE_BORDER,
-    borderWidth: '2@ms',
+    borderWidth: StyleSheet.hairlineWidth,
   },
 
   infoSection: {
