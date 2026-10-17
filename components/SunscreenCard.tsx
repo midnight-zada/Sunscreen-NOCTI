@@ -18,6 +18,7 @@ import {
   SUN_COLOR,
   WATER_COLOR,
 } from '@/lib/constants'
+import { hexToRGB } from '@/lib/imageColor'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -47,6 +48,39 @@ interface SunscreenCardProps {
   sunscreen: UserSunscreen
   isFocused: boolean
 }
+
+interface ImageEdgeGradientProps {
+  color?: string
+  borderRadius?: number
+  blur?: number
+  spread?: number
+  opacity?: number
+}
+
+const ImageEdgeGradient = ({
+  color = '#ff0000',
+  borderRadius = 0,
+  blur = 2,
+  spread = 2,
+  opacity = 1,
+}: ImageEdgeGradientProps) => {
+  const [r, g, b] = hexToRGB(color)
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          borderRadius: borderRadius,
+          boxShadow: `inset 0 0 ${ms(blur)}px ${ms(spread)}px rgba(${r}, ${g}, ${b}, ${opacity})`,
+        },
+      ]}
+    />
+  )
+}
+
+const IMAGE_BORDER = 24
 
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const insets = useSafeAreaInsets()
@@ -186,24 +220,36 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         },
       ]}
     >
-      <Pressable
-        style={[
-          styles.imageBorder,
-          {
-            borderColor: sunscreen.cover_border_color
-              ? sunscreen.cover_border_color
-              : sunscreen.border_color
-                ? sunscreen.border_color
-                : PLACEHOLDER_BG,
-          },
-        ]}
-        onPress={() => setIsImageFocused(true)}
-      >
-        <Image
-          source={imageSource ? imageSource : require('../assets/images/placeholder.jpg')}
-          style={styles.image}
-        />
-      </Pressable>
+      <View style={styles.imageBorder}>
+        <Pressable style={[]} onPress={() => setIsImageFocused(true)}>
+          <Image
+            source={
+              imageSource ? imageSource : require('../assets/images/placeholder.jpg')
+            }
+            style={[
+              styles.image,
+              {
+                borderColor: sunscreen.cover_border_color
+                  ? sunscreen.cover_border_color
+                  : sunscreen.border_color
+                    ? sunscreen.border_color
+                    : PLACEHOLDER_BG,
+              },
+            ]}
+          />
+          <ImageEdgeGradient
+            color={
+              sunscreen.cover_border_color
+                ? sunscreen.cover_border_color
+                : sunscreen.border_color
+                  ? sunscreen.border_color
+                  : PLACEHOLDER_BG
+            }
+            borderRadius={IMAGE_BORDER}
+          />
+        </Pressable>
+      </View>
+
       <View style={styles.infoSection}>
         <View style={styles.headerSection}>
           <Pressable
@@ -418,19 +464,14 @@ const styles = ScaledSheet.create({
 
   imageBorder: {
     marginInlineStart: '10@s',
-    width: '90@s',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 24,
-    borderWidth: '1.8@s',
   },
 
   image: {
-    width: '83.6@s',
+    width: '90@s',
     aspectRatio: 1,
-    borderRadius: 20,
-    overflow: 'hidden',
+    backgroundColor: PLACEHOLDER_BG,
+    borderRadius: IMAGE_BORDER,
+    borderWidth: '2@ms',
   },
 
   infoSection: {
