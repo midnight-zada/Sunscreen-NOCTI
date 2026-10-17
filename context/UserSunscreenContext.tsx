@@ -2,6 +2,7 @@ import {
   commitUserSunscreenImage,
   editUserSunscreen,
   getActiveUserSunscreens,
+  getUserSunscreens,
   InsertUserSunscreen,
   insertUserSunscreen,
   setUserSunscreenArchive,
@@ -42,6 +43,7 @@ const UserSunscreenContext = createContext<UserSunscreenContextType | null>(null
 export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   const { db, userId } = useAppContext()
   const [userSunscreens, setUserSunscreens] = useState<UserSunscreen[]>([])
+  const [allUserSunscreens, setAllUserSunscreens] = useState<UserSunscreen[]>([])
   const [hasLoaded, setHasLoaded] = useState(false)
   const [sortOption, setSortOption] = useState<SortOptions>('favorites')
   const [sortDirection, setSortDirection] = useState<SortDirection>('default')
@@ -57,6 +59,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const refreshUserSunscreens = useCallback(async () => {
     setUserSunscreens(await getActiveUserSunscreens(db))
+    setAllUserSunscreens(await getUserSunscreens(db))
     setHasLoaded(true)
   }, [db, userId])
 
@@ -65,8 +68,8 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
   }, [refreshUserSunscreens])
 
   const getById = useCallback(
-    (id: string | number) => userSunscreens.find((s) => String(s.id) === String(id)),
-    [userSunscreens]
+    (id: string | number) => allUserSunscreens.find((s) => String(s.id) === String(id)),
+    [allUserSunscreens]
   )
 
   const latestSunscreens = useRef(userSunscreens)

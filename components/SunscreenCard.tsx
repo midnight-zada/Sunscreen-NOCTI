@@ -1,4 +1,7 @@
+import { useAppContext } from '@/context/AppContext'
+import { useApplications } from '@/context/ApplicationContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
+import { useCurrentLocation } from '@/hooks/useCurrentLocation'
 import {
   FONT_HEADER,
   FONT_SUBTEXT,
@@ -11,9 +14,11 @@ import {
   PROFILE_TEXT,
   SEPARATOR,
   SEPARATOR_BRIGHT,
+  SUCCESS_COLOR,
   SUN_COLOR,
   WATER_COLOR,
 } from '@/lib/constants'
+import { hexToRGB } from '@/lib/imageColor'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -22,15 +27,21 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet'
-import { notificationAsync, NotificationFeedbackType } from 'expo-haptics'
+import {
+  impactAsync,
+  ImpactFeedbackStyle,
+  notificationAsync,
+  NotificationFeedbackType,
+} from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { memo, useCallback, useRef, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
 import BorderButton from './BorderButton'
 import ImageViewer from './ImageViewer'
+import LoadingDots from './LoadingDots'
 import Separator from './Separator'
 
 interface SunscreenCardProps {
@@ -38,15 +49,106 @@ interface SunscreenCardProps {
   isFocused: boolean
 }
 
+interface ImageEdgeGradientProps {
+  color?: string
+  borderRadius?: number
+  blur?: number
+  spread?: number
+  opacity?: number
+}
+
+const ImageEdgeGradient = ({
+  color = '#000',
+  borderRadius = 0,
+  blur = 3,
+  spread = 2,
+  opacity = 1,
+}: ImageEdgeGradientProps) => {
+  const [r, g, b] = hexToRGB(color)
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          borderRadius: borderRadius,
+          boxShadow: `inset 0 0 ${ms(blur)}px ${ms(spread)}px rgba(${r}, ${g}, ${b}, ${opacity})`,
+        },
+      ]}
+    />
+  )
+}
+
+const IMAGE_BORDER = 24
+
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const insets = useSafeAreaInsets()
+  const { userId } = useAppContext()
   const { toggleFavorite, archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
+  const { addApplication } = useApplications()
+  const { getCurrentLocation } = useCurrentLocation()
 
   const [isWaterApplication, setIsWaterApplication] = useState(false)
   const [isImageFocused, setIsImageFocused] = useState(false)
   const isFavorite = sunscreen.is_favorite === 1
+  const isApplying = useRef(false)
 
-  const applySunscreen = async () => {}
+  const [applyStatus, setApplyStatus] = useState<'idle' | 'loading' | 'success'>('idle')
+  const checkmarkOpacity = useRef(new Animated.Value(0)).current
+  const loadingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const applySunscreen = async () => {
+    if (isApplying.current) return
+    isApplying.current = true
+
+    loadingTimeout.current = setTimeout(() => {
+      setApplyStatus('loading')
+    }, 500)
+
+    try {
+      const appliedAt = new Date().toISOString()
+      const location = await getCurrentLocation()
+
+      await addApplication({
+        user_id: userId,
+        user_sunscreen_id: sunscreen.id,
+        uvi_high: null,
+        uvi_low: null,
+        uvi_average: null,
+        is_water_exposed: isWaterApplication ? 1 : 0,
+        latitude: location?.latitude ?? null,
+        longitude: location?.longitude ?? null,
+        applied_at: appliedAt,
+      })
+
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
+
+      notificationAsync(NotificationFeedbackType.Success)
+      setApplyStatus('success')
+      checkmarkOpacity.setValue(1)
+      Animated.timing(checkmarkOpacity, {
+        toValue: 0,
+        duration: 500,
+        delay: 3000,
+        useNativeDriver: true,
+      }).start(() => setApplyStatus('idle'))
+    } catch (error) {
+      if (loadingTimeout.current) clearTimeout(loadingTimeout.current)
+
+      setApplyStatus('idle')
+      Alert.alert(
+        'Something Went Wrong',
+        `${error instanceof Error ? error.message : String(error)}`
+      )
+      notificationAsync(NotificationFeedbackType.Error)
+      console.error(
+        `Failed To Apply: ${error instanceof Error ? error.message : String(error)}`
+      )
+    } finally {
+      isApplying.current = false
+    }
+  }
 
   const imageSource = sunscreen.cover_uri ? sunscreen.cover_uri : sunscreen.image_uri
 
@@ -119,24 +221,36 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         },
       ]}
     >
-      <Pressable
-        style={[
-          styles.imageBorder,
-          {
-            borderColor: sunscreen.cover_border_color
-              ? sunscreen.cover_border_color
-              : sunscreen.border_color
-                ? sunscreen.border_color
-                : PLACEHOLDER_BG,
-          },
-        ]}
-        onPress={() => setIsImageFocused(true)}
-      >
-        <Image
-          source={imageSource ? imageSource : require('../assets/images/placeholder.jpg')}
-          style={styles.image}
-        />
-      </Pressable>
+      <View style={styles.imageBorder}>
+        <Pressable style={[]} onPress={() => setIsImageFocused(true)}>
+          <Image
+            source={
+              imageSource ? imageSource : require('../assets/images/placeholder.jpg')
+            }
+            style={[
+              styles.image,
+              {
+                borderColor: sunscreen.cover_border_color
+                  ? sunscreen.cover_border_color
+                  : sunscreen.border_color
+                    ? sunscreen.border_color
+                    : PLACEHOLDER_BG,
+              },
+            ]}
+          />
+          <ImageEdgeGradient
+            color={
+              sunscreen.cover_border_color
+                ? sunscreen.cover_border_color
+                : sunscreen.border_color
+                  ? sunscreen.border_color
+                  : PLACEHOLDER_BG
+            }
+            borderRadius={IMAGE_BORDER}
+          />
+        </Pressable>
+      </View>
+
       <View style={styles.infoSection}>
         <View style={styles.headerSection}>
           <Pressable
@@ -244,8 +358,24 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               borderRadius={12}
               borderStyle={2}
               onPress={applySunscreen}
+              onLongPress={() => {
+                router.push({
+                  pathname: '/viewUserSunscreen',
+                  params: { id: sunscreen.id },
+                })
+                impactAsync(ImpactFeedbackStyle.Rigid)
+              }}
+              disabled={applyStatus !== 'idle'}
             >
-              <Text style={styles.applyText}>Apply</Text>
+              {applyStatus === 'loading' ? (
+                <LoadingDots size={ms(5)} />
+              ) : applyStatus === 'success' ? (
+                <Animated.View style={{ opacity: checkmarkOpacity }}>
+                  <Ionicons name="checkmark" size={ms(20)} color={SUCCESS_COLOR} />
+                </Animated.View>
+              ) : (
+                <Text style={styles.applyText}>Apply</Text>
+              )}
             </BorderButton>
           </View>
         </View>
@@ -335,19 +465,14 @@ const styles = ScaledSheet.create({
 
   imageBorder: {
     marginInlineStart: '10@s',
-    width: '90@s',
-    aspectRatio: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 24,
-    borderWidth: '1.8@s',
   },
 
   image: {
-    width: '83.6@s',
+    width: '90@s',
     aspectRatio: 1,
-    borderRadius: 20,
-    overflow: 'hidden',
+    backgroundColor: PLACEHOLDER_BG,
+    borderRadius: IMAGE_BORDER,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 
   infoSection: {

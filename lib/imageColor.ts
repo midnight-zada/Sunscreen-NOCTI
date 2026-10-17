@@ -87,12 +87,7 @@ export async function sampleBorder(uri: string, crop: Crop): Promise<RGB | null>
       fallback: PROFILE_SCREEN_BG_COLOR,
     })
 
-    const color =
-      result.platform === 'ios'
-        ? result.background
-        : result.platform === 'android' || result.platform === 'web'
-          ? result.dominant
-          : null
+    const color = result.platform === 'ios' ? result.background : null
 
     return color ? hexToRGB(color) : null
   } catch (error) {

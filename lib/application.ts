@@ -1,7 +1,7 @@
 import { SQLiteDatabase } from 'expo-sqlite'
 
 export interface Application {
-  id: string
+  id: number
   user_id: string
   user_sunscreen_id: number
   uvi_high: number | null
@@ -20,7 +20,7 @@ export type InsertApplication = Omit<Application, 'id' | 'created_at' | 'synced_
 export async function getApplications(db: SQLiteDatabase, userId: string) {
   return db.getAllAsync<Application>(
     /* sql */ `
-    SELECT * FROM sunscreen_logs WHERE user_id = ? ORDER BY applied_at DESC`,
+    SELECT * FROM application WHERE user_id = ? ORDER BY applied_at DESC`,
     userId
   )
 }
@@ -33,8 +33,8 @@ export async function insertApplication(
 
   const result = await db.runAsync(
     /* sql */ `
-    INSERT INTO sunscreen_logs
-      (user_id, user_sunscreen_id, uvi_high, uvi_low, uvi_average, is_water_exposed, 
+    INSERT INTO application
+      (user_id, user_sunscreen_id, uvi_high, uvi_low, uvi_average, is_water_exposed,
       latitude, longitude, applied_at, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     application.user_id,
