@@ -64,6 +64,11 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       cover_border_color TEXT,
       image_uri TEXT,                   -- user's own photo/library pick only
       border_color TEXT,
+      is_border_visible INTEGER NOT NULL DEFAULT 1,
+      card_border_opacity REAL NOT NULL DEFAULT 1,
+      card_border_intensity REAL NOT NULL DEFAULT 1,
+      card_gradient_opacity REAL NOT NULL DEFAULT 1,
+      card_gradient_intensity REAL NOT NULL DEFAULT 1,
       is_archived INTEGER NOT NULL DEFAULT 0,
 
       -- copied from sunscreen at save time
@@ -128,7 +133,7 @@ export async function clearTable(db: SQLiteDatabase, table: string): Promise<voi
 
 export async function resetDB(db: SQLiteDatabase): Promise<void> {
   await db.execAsync(`PRAGMA foreign_keys = OFF;`)
-  
+
   await db.execAsync(/* sql */ `
     DROP TABLE IF EXISTS application;
     DROP TABLE IF EXISTS user_sunscreen;

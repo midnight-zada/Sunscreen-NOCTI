@@ -5,6 +5,8 @@ import { ImageManipulator } from 'expo-image-manipulator'
 import { getColors } from 'react-native-image-colors'
 
 import type { ImageRef } from 'expo-image-manipulator'
+import { StyleSheet, View } from 'react-native'
+import { ms } from 'react-native-size-matters'
 
 export type RGB = [number, number, number]
 
@@ -15,11 +17,13 @@ export const getImageSize = async (
   return { width, height }
 }
 
+export const isValidStrippedHex = (stripped: string): boolean =>
+  /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(stripped)
+
 export const hexToRGB = (hex: string): RGB => {
   const stripped = hex.replace('#', '')
 
-  if (!/^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(stripped))
-    throw new Error(`Invalid Hex Color: ${hex}`)
+  if (!isValidStrippedHex(stripped)) throw new Error(`Invalid Hex Color: ${hex}`)
 
   const expanded =
     stripped.length === 3
@@ -55,12 +59,9 @@ export const colorDistance = (
 }
 
 export const getBWContrast = (hexColor: string | null) => {
-  if (!hexColor) return '#fff'
+  if (!hexColor || !isValidStrippedHex(hexColor.replace('#', ''))) return '#fff'
 
-  const hex = hexColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
+  const [r, g, b] = hexToRGB(hexColor)
 
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
   return luminance > 0.6 ? '#000' : '#fff'
@@ -167,4 +168,41 @@ export async function getBorderColor(uri: string): Promise<string | null> {
     )
     return null
   }
+}
+
+export const hexToRGBA = (hex: string, opacity: number): string => {
+  const [r, g, b] = hexToRGB(hex)
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`
+}
+
+interface ImageEdgeGradientProps {
+  color?: string
+  borderRadius?: number
+  blur?: number
+  spread?: number
+  opacity?: number
+}
+
+export const ImageEdgeGradient = ({
+  color = '#000',
+  borderRadius = 0,
+  blur = 3,
+  spread = 1,
+  opacity = 0.8,
+}: ImageEdgeGradientProps) => {
+  if (color === 'transparent') return null
+  const [r, g, b] = hexToRGB(color)
+
+  return (
+    <View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          borderRadius: borderRadius,
+          boxShadow: `inset 0 0 ${ms(blur)}px ${ms(spread)}px rgba(${r}, ${g}, ${b}, ${opacity})`,
+        },
+      ]}
+    />
+  )
 }

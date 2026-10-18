@@ -60,6 +60,11 @@ export interface UserSunscreen {
   cover_border_color: string | null
   image_uri: string | null
   border_color: string | null
+  is_border_visible: number
+  card_border_opacity: number
+  card_border_intensity: number
+  card_gradient_opacity: number
+  card_gradient_intensity: number
   is_archived: number
 
   // copied/edited from catalog at insert time
@@ -111,9 +116,7 @@ export function sortUserSunscreens(
 
   switch (sortOption) {
     case 'created':
-      return sorted.sort((a, b) =>
-        direction === 'reversed' ? a.id - b.id : b.id - a.id
-      )
+      return sorted.sort((a, b) => (direction === 'reversed' ? a.id - b.id : b.id - a.id))
     case 'updated':
       return sorted.sort((a, b) =>
         direction === 'reversed'
@@ -121,13 +124,9 @@ export function sortUserSunscreens(
           : b.updated_at.localeCompare(a.updated_at)
       )
     case 'favorites':
-      return sorted.sort((a, b) =>
-        compareNumber(a.is_favorite, b.is_favorite, direction)
-      )
+      return sorted.sort((a, b) => compareNumber(a.is_favorite, b.is_favorite, direction))
     case 'alpha_nickname':
-      return sorted.sort((a, b) =>
-        compareString(a.nickname, b.nickname, direction)
-      )
+      return sorted.sort((a, b) => compareString(a.nickname, b.nickname, direction))
     case 'alpha_name':
       return sorted.sort((a, b) => compareString(a.name, b.name, direction))
     case 'alpha_brand':
@@ -182,11 +181,12 @@ export async function insertUserSunscreen(
 
   const result = await db.runAsync(
     /* sql */ `
-    INSERT INTO user_sunscreen 
-      (user_id, sunscreen_id, nickname, is_favorite, notes, cover_uri, 
-      cover_border_color, image_uri, border_color, name, brand, spf, type, form, 
-      coverage, duration, water_duration, barcode, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    INSERT INTO user_sunscreen (
+      user_id, sunscreen_id, nickname, is_favorite, notes, cover_uri, cover_border_color, 
+      image_uri, border_color, is_border_visible, card_border_opacity,
+      card_border_intensity, card_gradient_opacity, card_gradient_intensity, name, brand, 
+      spf, type, form, coverage, duration, water_duration, barcode, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     data.user_id,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
@@ -196,6 +196,11 @@ export async function insertUserSunscreen(
     data.cover_border_color ?? null,
     data.image_uri ?? null,
     data.border_color ?? null,
+    data.is_border_visible ?? 1,
+    data.card_border_opacity ?? 1,
+    data.card_border_intensity ?? 1,
+    data.card_gradient_opacity ?? 1,
+    data.card_gradient_intensity ?? 1,
     data.name,
     data.brand ?? null,
     data.spf,
@@ -222,10 +227,11 @@ export async function editUserSunscreen(
   const result = await db.runAsync(
     /* sql */ `
     UPDATE user_sunscreen SET
-      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?, cover_uri = ?, 
-      cover_border_color = ?, image_uri = ?, border_color = ?, name = ?, brand = ?, 
-      spf = ?, type = ?, form = ?, coverage = ?, duration = ?, water_duration = ?, 
-      barcode = ?, updated_at = ?
+      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?, cover_uri = ?,
+      cover_border_color = ?, image_uri = ?, border_color = ?, is_border_visible = ?,
+      card_border_opacity = ?, card_border_intensity = ?, card_gradient_opacity = ?,
+      card_gradient_intensity = ?, name = ?, brand = ?, spf = ?, type = ?, form = ?, 
+      coverage = ?, duration = ?, water_duration = ?, barcode = ?, updated_at = ?
     WHERE id = ?`,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
@@ -235,6 +241,11 @@ export async function editUserSunscreen(
     data.cover_border_color ?? null,
     data.image_uri ?? null,
     data.border_color ?? null,
+    data.is_border_visible ?? 1,
+    data.card_border_opacity ?? 1,
+    data.card_border_intensity ?? 1,
+    data.card_gradient_opacity ?? 1,
+    data.card_gradient_intensity ?? 1,
     data.name,
     data.brand ?? null,
     data.spf,
@@ -265,6 +276,38 @@ export async function setUserSunscreenFavorite(
   if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
 
   return result.changes
+}
+
+export async function setUserSunscreenCardBorderOpacity(
+  db: SQLiteDatabase,
+  id: number,
+  opacity: number
+): Promise<void> {
+  const clampOpacity = Math.min(1, Math.max(0, opacity))
+
+  const result = await db.runAsync(
+    /* sql */ `UPDATE user_sunscreen SET card_border_opacity = ? WHERE id = ?`,
+    clampOpacity,
+    id
+  )
+
+  if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
+}
+
+export async function setUserSunscreenCardGradientOpacity(
+  db: SQLiteDatabase,
+  id: number,
+  opacity: number
+): Promise<void> {
+  const clampOpacity = Math.min(1, Math.max(0, opacity))
+
+  const result = await db.runAsync(
+    /* sql */ `UPDATE user_sunscreen SET card_gradient_opacity = ? WHERE id = ?`,
+    clampOpacity,
+    id
+  )
+
+  if (result.changes === 0) throw new Error(`No user_sunscreen found with id ${id}`)
 }
 
 export async function setUserSunscreenArchive(

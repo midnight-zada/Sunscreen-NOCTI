@@ -1,7 +1,8 @@
 import DropInput from '@/components/DropInput'
 import ErrorScreen from '@/components/ErrorScreen'
+import LoadingDots from '@/components/icons/LoadingDots'
+import SunscreenImageOutline from '@/components/icons/SunscreenImageOutline'
 import ImageViewer from '@/components/ImageViewer'
-import LoadingDots from '@/components/LoadingDots'
 import Separator from '@/components/Separator'
 import { ERROR_RED } from '@/constants/colors'
 import { useAppContext } from '@/context/AppContext'
@@ -15,6 +16,7 @@ import {
   PROFILE_TEXT,
   SEPARATOR,
 } from '@/lib/constants'
+import { ImageEdgeGradient } from '@/lib/imageColor'
 import {
   commitUserSunscreenImage,
   COVERAGE_OPTIONS,
@@ -59,6 +61,7 @@ const ITEM_GAP = 4
 const SINGLE_GAP = 6
 
 const SET_RADIUS = 3
+const IMAGE_OUTER_RADIUS = 30
 
 const EMPTY_SUNSCREEN: InsertUserSunscreen = {
   user_id: '',
@@ -70,6 +73,11 @@ const EMPTY_SUNSCREEN: InsertUserSunscreen = {
   cover_border_color: null,
   image_uri: null,
   border_color: null,
+  is_border_visible: 1,
+  card_border_opacity: 1,
+  card_border_intensity: 1,
+  card_gradient_opacity: 1,
+  card_gradient_intensity: 1,
   name: null,
   brand: null,
   spf: 0,
@@ -109,7 +117,8 @@ const EditUserSunscreen = () => {
   const { db, userId } = useAppContext()
   const { archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { getById, refreshUserSunscreens } = useUserSunscreens()
+  const { getById, refreshUserSunscreens, toggleCardBorder, toggleCardGradient } =
+    useUserSunscreens()
 
   const [editSunscreen, setEditSunscreen] = useState<InsertUserSunscreen | null>(null)
   const [sheetMode, setSheetMode] = useState<EditSheetMode>(null)
@@ -145,6 +154,22 @@ const EditUserSunscreen = () => {
   const setEditSunscreenField = useCallback(
     <Key extends keyof InsertUserSunscreen>(key: Key, value: InsertUserSunscreen[Key]) =>
       setEditSunscreen((prev) => (prev ? { ...prev, [key]: value } : prev)),
+    []
+  )
+
+  const toggleEditSunscreenField = useCallback(
+    (
+      key: keyof Pick<
+        InsertUserSunscreen,
+        | 'card_border_opacity'
+        | 'card_gradient_opacity'
+        | 'is_border_visible'
+        | 'is_favorite'
+      >
+    ) =>
+      setEditSunscreen((prev) =>
+        prev ? { ...prev, [key]: prev[key] === 0 ? 1 : 0 } : prev
+      ),
     []
   )
 
@@ -436,401 +461,511 @@ const EditUserSunscreen = () => {
       </View>
       <Separator />
       {editSunscreen ? (
-        <KeyboardAwareScrollView
-          style={{ flex: 1 }}
-          showsVerticalScrollIndicator={false}
-          bottomOffset={20}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.nameInputSection}>
-            <View style={styles.horizInfoRow}>
-              <Text
-                style={[
-                  styles.infoKey,
-                  styles.horizKey,
-                  !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
-                ]}
-              >
-                Nickname
-              </Text>
-              <TextInput
-                style={[styles.noteInput, styles.horizInput]}
-                value={editSunscreen.nickname || ''}
-                onChange={(e) =>
-                  setEditSunscreenField('nickname', e.nativeEvent.text || null)
-                }
-              />
-            </View>
-            <View style={styles.horizInfoRow}>
-              <Text
-                style={[
-                  styles.infoKey,
-                  styles.horizKey,
-                  !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
-                ]}
-              >
-                Name
-              </Text>
-              <TextInput
-                style={[styles.noteInput, styles.horizInput]}
-                value={editSunscreen.name || ''}
-                onChange={(e) =>
-                  setEditSunscreenField('name', e.nativeEvent.text || null)
-                }
-              />
-            </View>
-            <View style={styles.horizInfoRow}>
-              <Text style={[styles.infoKey, styles.horizKey]}>Brand</Text>
-              <TextInput
-                style={[styles.noteInput, styles.horizInput]}
-                value={editSunscreen.brand || ''}
-                onChange={(e) => {
-                  setEditSunscreenField('brand', e.nativeEvent.text || null)
-                }}
-              />
-            </View>
-
-            <View style={styles.setSection}>
-              <Pressable style={styles.setButtons}>
-                <View style={styles.setIndicator}>
-                  <Ionicons name="pin" size={ms(FONT_TEXT + 3)} color={PROFILE_TEXT} />
-                </View>
-                <View style={styles.setTextSection}>
-                  <Text style={[styles.infoKey, styles.setText]}>Pin</Text>
-                </View>
-              </Pressable>
-              <Pressable
-                style={styles.setButtons}
-                onPress={() =>
-                  setEditSunscreenField(
-                    'is_favorite',
-                    editSunscreen.is_favorite === 0 ? 1 : 0
-                  )
-                }
-              >
-                <View style={styles.setIndicator}>
-                  <Ionicons
-                    name="star"
-                    size={ms(FONT_TEXT + 3)}
-                    color={
-                      editSunscreen.is_favorite === 0 ? PROFILE_TEXT : 'rgb(255, 225, 0)'
-                    }
-                  />
-                </View>
-                <View style={styles.setTextSection}>
-                  <Text style={[styles.infoKey, styles.setText]}>Favorite</Text>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-          <Separator />
-          <View style={styles.imageSection}>
-            <View style={styles.imageContainer}>
-              <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
-              <Pressable
-                style={[
-                  styles.imageBorder,
-                  {
-                    borderColor: editSunscreen.cover_border_color
-                      ? editSunscreen.cover_border_color
-                      : PLACEHOLDER_BG,
-                  },
-                ]}
-                onPress={() => focuseImage('cover')}
-              >
-                <Image
-                  source={
-                    editSunscreen.cover_uri
-                      ? { uri: editSunscreen.cover_uri }
-                      : PLACEHOLDER_IMAGE
-                  }
-                  style={styles.image}
-                />
-              </Pressable>
-              <Pressable style={styles.editButton} onPress={editCoverImage}>
-                <Text style={styles.editText}>Edit</Text>
-                <Ionicons
-                  name="create-outline"
-                  size={ms(FONT_TEXT + 1)}
-                  color={PROFILE_TEXT}
-                />
-              </Pressable>
-            </View>
-            <View style={styles.imageContainer}>
-              <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
-              <Pressable
-                style={[
-                  styles.imageBorder,
-                  {
-                    borderColor: editSunscreen.border_color
-                      ? editSunscreen.border_color
-                      : PLACEHOLDER_BG,
-                  },
-                ]}
-                onPress={() => focuseImage('product')}
-              >
-                <Image
-                  source={
-                    editSunscreen.image_uri
-                      ? { uri: editSunscreen.image_uri }
-                      : PLACEHOLDER_IMAGE
-                  }
-                  style={styles.image}
-                />
-              </Pressable>
-              <Pressable style={styles.editButton} onPress={editProductImage}>
-                <Text style={styles.editText}>Edit</Text>
-                <Ionicons
-                  name="create-outline"
-                  size={ms(FONT_TEXT + 1)}
-                  color={PROFILE_TEXT}
-                />
-              </Pressable>
-            </View>
-          </View>
-          <Separator />
-          <View style={styles.infoSection}>
-            <View style={styles.infoColumn}>
-              <View style={styles.infoRow}>
-                <Text
-                  style={[styles.infoKey, editSunscreen.spf <= 0 && styles.inputNeeded]}
-                >
-                  SPF
-                </Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <TextInput
-                  style={styles.infoValue}
-                  value={editSunscreen.spf === 0 ? '' : String(editSunscreen.spf)}
-                  onChange={(e) => {
-                    const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
-                    setEditSunscreenField('spf', digits === '' ? 0 : Number(digits))
-                  }}
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.infoRow}>
+        <>
+          <KeyboardAwareScrollView
+            style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
+            bottomOffset={20}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.nameInputSection}>
+              <View style={styles.horizInfoRow}>
                 <Text
                   style={[
                     styles.infoKey,
-                    editSunscreen.duration <= 0 && styles.inputNeeded,
+                    styles.horizKey,
+                    !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
                   ]}
                 >
-                  Duration
+                  Nickname
                 </Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
                 <TextInput
-                  style={styles.infoValue}
-                  value={
-                    editSunscreen.duration === 0
-                      ? ''
-                      : String(Math.round(editSunscreen.duration / 60000))
+                  style={[styles.noteInput, styles.horizInput]}
+                  value={editSunscreen.nickname || ''}
+                  onChange={(e) =>
+                    setEditSunscreenField('nickname', e.nativeEvent.text || null)
                   }
-                  onChange={(e) => {
-                    const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
-                    setEditSunscreenField(
-                      'duration',
-                      digits === '' ? 0 : Number(digits) * 60000
-                    )
-                  }}
-                  keyboardType="number-pad"
                 />
               </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>Water Resistant</Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <TextInput
-                  style={styles.infoValue}
-                  value={
-                    editSunscreen.water_duration === 0 ||
-                    editSunscreen.water_duration === null
-                      ? ''
-                      : String(Math.round(editSunscreen.water_duration / 60000))
-                  }
-                  onChange={(e) => {
-                    const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
-                    setEditSunscreenField(
-                      'water_duration',
-                      digits === '' ? null : Number(digits) * 60000
-                    )
-                  }}
-                  placeholder="N/A"
-                  placeholderTextColor={PLACEHOLDER_COLOR}
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
-            <View style={styles.infoColumn}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>Type</Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <DropInput
-                  type="type"
-                  data={TYPE_OPTIONS}
-                  initValue={editSunscreen.type}
-                  setField={setEditSunscreenField}
-                  fontSize={FONT_TEXT}
-                />
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>Form</Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <DropInput
-                  type="form"
-                  data={FORM_OPTIONS}
-                  initValue={editSunscreen.form}
-                  setField={setEditSunscreenField}
-                  fontSize={FONT_TEXT}
-                />
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoKey}>Coverage</Text>
-                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-                <DropInput
-                  type="coverage"
-                  data={COVERAGE_OPTIONS}
-                  initValue={editSunscreen.coverage}
-                  setField={setEditSunscreenField}
-                  fontSize={FONT_TEXT}
-                />
-              </View>
-            </View>
-          </View>
-          <View style={styles.notes}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoKey}>Notes</Text>
-              <Separator gradient={INFO_SEPARATOR_GRADIENT} />
-              <TextInput
-                style={styles.noteInput}
-                value={editSunscreen.notes || ''}
-                onChange={(e) => setEditSunscreenField('notes', e.nativeEvent.text)}
-                multiline
-              />
-            </View>
-            <View style={styles.horizInfoRow}>
-              <Text style={[styles.infoKey, { marginInlineEnd: scale(SECTION_GAP) }]}>
-                Barcode
-              </Text>
-              <TextInput
-                style={[styles.noteInput, styles.horizInput]}
-                value={editSunscreen.barcode || ''}
-                onChange={(e) => setEditSunscreenField('barcode', e.nativeEvent.text)}
-              />
-            </View>
-          </View>
-          {mode === 'edit' && (
-            <>
-              <Separator scaleMargin={SECTION_GAP} />
-              <View style={styles.bottomButtonSection}>
-                <Pressable
-                  style={[styles.bottomButtons, { borderColor: PROFILE_ICON }]}
-                  onPress={onDuplicateSunscreen}
+              <View style={styles.horizInfoRow}>
+                <Text
+                  style={[
+                    styles.infoKey,
+                    styles.horizKey,
+                    !editSunscreen.nickname && !editSunscreen.name && styles.inputNeeded,
+                  ]}
                 >
-                  <Text
-                    style={[styles.infoKey, styles.deleteText, { color: PROFILE_ICON }]}
-                  >
-                    Duplicate
-                  </Text>
+                  Name
+                </Text>
+                <TextInput
+                  style={[styles.noteInput, styles.horizInput]}
+                  value={editSunscreen.name || ''}
+                  onChange={(e) =>
+                    setEditSunscreenField('name', e.nativeEvent.text || null)
+                  }
+                />
+              </View>
+              <View style={styles.horizInfoRow}>
+                <Text style={[styles.infoKey, styles.horizKey]}>Brand</Text>
+                <TextInput
+                  style={[styles.noteInput, styles.horizInput]}
+                  value={editSunscreen.brand || ''}
+                  onChange={(e) => {
+                    setEditSunscreenField('brand', e.nativeEvent.text || null)
+                  }}
+                />
+              </View>
+              <View style={styles.setSection}>
+                <Pressable style={styles.setButtons}>
+                  <View style={styles.setIndicator}>
+                    <Ionicons name="pin" size={ms(FONT_TEXT + 3)} color={PROFILE_TEXT} />
+                  </View>
+                  <View style={styles.setTextSection}>
+                    <Text style={[styles.infoKey, styles.setText]}>Pin</Text>
+                  </View>
                 </Pressable>
-                <Pressable style={styles.bottomButtons} onPress={deleteSunscreen}>
-                  <Text style={[styles.infoKey, styles.deleteText]}>Delete</Text>
+                <Pressable
+                  style={styles.setButtons}
+                  onPress={() => toggleEditSunscreenField('is_favorite')}
+                >
+                  <View style={styles.setIndicator}>
+                    <Ionicons
+                      name="star"
+                      size={ms(FONT_TEXT + 3)}
+                      color={
+                        editSunscreen.is_favorite === 0
+                          ? PROFILE_TEXT
+                          : 'rgb(255, 225, 0)'
+                      }
+                    />
+                  </View>
+                  <View style={styles.setTextSection}>
+                    <Text style={[styles.infoKey, styles.setText]}>Favorite</Text>
+                  </View>
                 </Pressable>
               </View>
-            </>
-          )}
-          <View style={{ height: insets.bottom }} />
-        </KeyboardAwareScrollView>
+            </View>
+            <Separator />
+            <View style={styles.imageSection}>
+              <View style={styles.imageContainer}>
+                <Text style={[styles.infoKey, styles.imageHeaderText]}>Cover</Text>
+                <Pressable
+                  style={[
+                    styles.imageBorder,
+                    {
+                      borderColor:
+                        editSunscreen.is_border_visible === 0
+                          ? 'transparent'
+                          : editSunscreen.cover_border_color
+                            ? editSunscreen.cover_border_color
+                            : PLACEHOLDER_BG,
+                    },
+                  ]}
+                  onPress={() => focuseImage('cover')}
+                >
+                  <Image
+                    source={
+                      editSunscreen.cover_uri
+                        ? editSunscreen.cover_uri
+                        : PLACEHOLDER_IMAGE
+                    }
+                    style={styles.image}
+                  />
+                </Pressable>
+                <Pressable style={styles.editButton} onPress={editCoverImage}>
+                  <Text style={styles.editText}>Edit</Text>
+                  <Ionicons
+                    name="create-outline"
+                    size={ms(FONT_TEXT + 1)}
+                    color={PROFILE_TEXT}
+                  />
+                </Pressable>
+              </View>
+              <View style={styles.imageContainer}>
+                <Text style={[styles.infoKey, styles.imageHeaderText]}>Product</Text>
+                <Pressable
+                  style={[
+                    styles.imageBorder,
+                    {
+                      borderColor:
+                        editSunscreen.is_border_visible === 0
+                          ? 'transparent'
+                          : editSunscreen.border_color
+                            ? editSunscreen.border_color
+                            : PLACEHOLDER_BG,
+                    },
+                  ]}
+                  onPress={() => focuseImage('product')}
+                >
+                  <Image
+                    source={
+                      editSunscreen.image_uri
+                        ? editSunscreen.image_uri
+                        : PLACEHOLDER_IMAGE
+                    }
+                    style={styles.image}
+                  />
+                </Pressable>
+                <Pressable style={styles.editButton} onPress={editProductImage}>
+                  <Text style={styles.editText}>Edit</Text>
+                  <Ionicons
+                    name="create-outline"
+                    size={ms(FONT_TEXT + 1)}
+                    color={PROFILE_TEXT}
+                  />
+                </Pressable>
+              </View>
+            </View>
+            <Separator />
+            <View style={styles.infoSection}>
+              <View style={styles.infoColumn}>
+                <View style={styles.infoRow}>
+                  <Text
+                    style={[styles.infoKey, editSunscreen.spf <= 0 && styles.inputNeeded]}
+                  >
+                    SPF
+                  </Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <TextInput
+                    style={styles.infoValue}
+                    value={editSunscreen.spf === 0 ? '' : String(editSunscreen.spf)}
+                    onChange={(e) => {
+                      const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
+                      setEditSunscreenField('spf', digits === '' ? 0 : Number(digits))
+                    }}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={styles.infoRow}>
+                  <Text
+                    style={[
+                      styles.infoKey,
+                      editSunscreen.duration <= 0 && styles.inputNeeded,
+                    ]}
+                  >
+                    Duration
+                  </Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <TextInput
+                    style={styles.infoValue}
+                    value={
+                      editSunscreen.duration === 0
+                        ? ''
+                        : String(Math.round(editSunscreen.duration / 60000))
+                    }
+                    onChange={(e) => {
+                      const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
+                      setEditSunscreenField(
+                        'duration',
+                        digits === '' ? 0 : Number(digits) * 60000
+                      )
+                    }}
+                    keyboardType="number-pad"
+                  />
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoKey}>Water Resistant</Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <TextInput
+                    style={styles.infoValue}
+                    value={
+                      editSunscreen.water_duration === 0 ||
+                      editSunscreen.water_duration === null
+                        ? ''
+                        : String(Math.round(editSunscreen.water_duration / 60000))
+                    }
+                    onChange={(e) => {
+                      const digits = e.nativeEvent.text.replace(/[^0-9]/g, '')
+                      setEditSunscreenField(
+                        'water_duration',
+                        digits === '' ? null : Number(digits) * 60000
+                      )
+                    }}
+                    placeholder="N/A"
+                    placeholderTextColor={PLACEHOLDER_COLOR}
+                    keyboardType="number-pad"
+                  />
+                </View>
+              </View>
+              <View style={styles.infoColumn}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoKey}>Type</Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <DropInput
+                    type="type"
+                    data={TYPE_OPTIONS}
+                    initValue={editSunscreen.type}
+                    setField={setEditSunscreenField}
+                    fontSize={FONT_TEXT}
+                  />
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoKey}>Form</Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <DropInput
+                    type="form"
+                    data={FORM_OPTIONS}
+                    initValue={editSunscreen.form}
+                    setField={setEditSunscreenField}
+                    fontSize={FONT_TEXT}
+                  />
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoKey}>Coverage</Text>
+                  <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                  <DropInput
+                    type="coverage"
+                    data={COVERAGE_OPTIONS}
+                    initValue={editSunscreen.coverage}
+                    setField={setEditSunscreenField}
+                    fontSize={FONT_TEXT}
+                  />
+                </View>
+              </View>
+            </View>
+            <View style={styles.notes}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoKey}>Notes</Text>
+                <Separator gradient={INFO_SEPARATOR_GRADIENT} />
+                <TextInput
+                  style={styles.noteInput}
+                  value={editSunscreen.notes || ''}
+                  onChange={(e) => setEditSunscreenField('notes', e.nativeEvent.text)}
+                  multiline
+                />
+              </View>
+              <View style={styles.horizInfoRow}>
+                <Text style={[styles.infoKey, { marginInlineEnd: scale(SECTION_GAP) }]}>
+                  Barcode
+                </Text>
+                <TextInput
+                  style={[styles.noteInput, styles.horizInput]}
+                  value={editSunscreen.barcode || ''}
+                  onChange={(e) => setEditSunscreenField('barcode', e.nativeEvent.text)}
+                />
+              </View>
+            </View>
+            {mode === 'edit' && (
+              <>
+                <Separator scaleMargin={SECTION_GAP} />
+                <View style={styles.bottomButtonSection}>
+                  <Pressable
+                    style={[styles.bottomButtons, { borderColor: PROFILE_ICON }]}
+                    onPress={onDuplicateSunscreen}
+                  >
+                    <Text
+                      style={[styles.infoKey, styles.deleteText, { color: PROFILE_ICON }]}
+                    >
+                      Duplicate
+                    </Text>
+                  </Pressable>
+                  <Pressable style={styles.bottomButtons} onPress={deleteSunscreen}>
+                    <Text style={[styles.infoKey, styles.deleteText]}>Delete</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+            <View style={{ height: insets.bottom }} />
+          </KeyboardAwareScrollView>
+          <BottomSheetModal
+            ref={editSheetRef}
+            snapPoints={sheetMode === 'picture' ? ['46%'] : ['60%']}
+            enableDynamicSizing={false}
+            enablePanDownToClose
+            backdropComponent={renderBackdrop}
+            backgroundStyle={styles.sheetBackground}
+            handleIndicatorStyle={styles.sheetHandle}
+          >
+            <BottomSheetView>
+              <View style={styles.modalHeader}>
+                <Pressable
+                  style={[
+                    styles.modalHeaderOption,
+                    {
+                      opacity: sheetMode === 'picture' ? 1 : 0.3,
+                    },
+                  ]}
+                  onPress={() => setSheetMode('picture')}
+                >
+                  <Text style={styles.modalHeaderText}>Edit Picture</Text>
+                  <View style={styles.modalSeperator} />
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.modalHeaderOption,
+                    {
+                      opacity: sheetMode === 'color' ? 1 : 0.3,
+                    },
+                  ]}
+                  onPress={() => setSheetMode('color')}
+                >
+                  <Text style={styles.modalHeaderText}>Edit Border</Text>
+                  <View style={styles.modalSeperator} />
+                </Pressable>
+              </View>
+              {sheetMode === 'picture' && (
+                <View style={styles.modalPictureContainer}>
+                  <Pressable
+                    style={styles.modalPictureButton}
+                    onPress={uploadImage}
+                    disabled={isWaitingLibrary}
+                  >
+                    <Ionicons
+                      name="images-outline"
+                      size={moderateScale(FONT_HEADER + 8)}
+                      style={styles.modalPictureIcon}
+                    />
+                    {isWaitingLibrary ? (
+                      <LoadingDots size={scale(4)} />
+                    ) : (
+                      <Text style={styles.modalPictureText}>Choose from library</Text>
+                    )}
+                  </Pressable>
+                  <Pressable
+                    style={styles.modalPictureButton}
+                    onPress={takeImage}
+                    disabled={isWaitingPhoto}
+                  >
+                    <Ionicons
+                      name="camera-outline"
+                      size={moderateScale(FONT_HEADER + 8)}
+                      style={styles.modalPictureIcon}
+                    />
+                    {isWaitingPhoto ? (
+                      <LoadingDots size={scale(4)} />
+                    ) : (
+                      <Text style={styles.modalPictureText}>Take photo</Text>
+                    )}
+                  </Pressable>
+                  <Pressable style={styles.modalPictureButton} onPress={removeImage}>
+                    <Ionicons
+                      name="trash-outline"
+                      size={moderateScale(FONT_HEADER + 8)}
+                      style={[styles.modalPictureIcon, styles.modalPictureDelete]}
+                    />
+                    <Text style={[styles.modalPictureText, styles.modalPictureDelete]}>
+                      Remove current image
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+              {sheetMode === 'color' && (
+                <View style={styles.modalColorContainer}>
+                  <View style={styles.modalColorImages}>
+                    <Pressable
+                      style={[
+                        styles.imageBorder,
+                        {
+                          borderColor:
+                            editSunscreen.is_border_visible === 0
+                              ? 'transparent'
+                              : imageType === 'cover'
+                                ? (editSunscreen?.cover_border_color ?? PLACEHOLDER_BG)
+                                : (editSunscreen?.border_color ?? PLACEHOLDER_BG),
+                        },
+                      ]}
+                      onPress={() => imageType && focuseImage(imageType)}
+                    >
+                      <Image
+                        source={
+                          imageType === 'cover'
+                            ? (editSunscreen?.cover_uri ?? PLACEHOLDER_IMAGE)
+                            : (editSunscreen?.image_uri ?? PLACEHOLDER_IMAGE)
+                        }
+                        style={styles.image}
+                      />
+                    </Pressable>
+                    <Pressable onPress={() => imageType && focuseImage(imageType)}>
+                      <Image
+                        source={
+                          imageType === 'cover'
+                            ? (editSunscreen?.cover_uri ?? PLACEHOLDER_IMAGE)
+                            : (editSunscreen?.image_uri ?? PLACEHOLDER_IMAGE)
+                        }
+                        style={[
+                          styles.imageCard,
+                          {
+                            borderColor:
+                              editSunscreen.card_border_opacity === 0
+                                ? 'transparent'
+                                : imageType === 'cover'
+                                  ? (editSunscreen?.cover_border_color ?? PLACEHOLDER_BG)
+                                  : (editSunscreen?.border_color ?? PLACEHOLDER_BG),
+                          },
+                        ]}
+                      />
+                      <ImageEdgeGradient
+                        color={
+                          editSunscreen.card_gradient_opacity === 0
+                            ? 'transparent'
+                            : imageType === 'cover'
+                              ? (editSunscreen?.cover_border_color ?? PLACEHOLDER_BG)
+                              : (editSunscreen?.border_color ?? PLACEHOLDER_BG)
+                        }
+                        borderRadius={IMAGE_OUTER_RADIUS}
+                        blur={3.69}
+                        spread={1.23}
+                      />
+                    </Pressable>
+                  </View>
+                  <Separator />
+                  <View style={styles.modalColorButtons}>
+                    <View style={{ flexDirection: 'row', gap: scale(SECTION_GAP) }}>
+                      <Pressable
+                        style={styles.modalColorSetButton}
+                        onPress={() => toggleEditSunscreenField('card_border_opacity')}
+                      >
+                        <View style={styles.setIndicator}>
+                          <SunscreenImageOutline type="card" size={FONT_HEADER + 8} />
+                        </View>
+                        <View style={styles.modalColorSetTextSection}>
+                          <Text style={styles.modalPictureText}>
+                            {editSunscreen.card_border_opacity === 0
+                              ? 'Show Border'
+                              : 'Hide Border'}
+                          </Text>
+                        </View>
+                      </Pressable>
+                      <Pressable
+                        style={styles.modalColorSetButton}
+                        onPress={() => toggleEditSunscreenField('card_gradient_opacity')}
+                      >
+                        <View style={styles.setIndicator}>
+                          <SunscreenImageOutline type="card" size={FONT_HEADER + 8} />
+                        </View>
+                        <View style={styles.modalColorSetTextSection}>
+                          <Text style={styles.modalPictureText}>
+                            {editSunscreen.card_gradient_opacity === 0
+                              ? 'Show Gradient'
+                              : 'Hide Gradient'}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    </View>
+                    <Pressable
+                      style={styles.modalColorSetButton}
+                      onPress={() => toggleEditSunscreenField('is_border_visible')}
+                    >
+                      <View style={styles.setIndicator}>
+                        <SunscreenImageOutline type="solid" size={FONT_HEADER + 8} />
+                      </View>
+                      <View style={styles.modalColorSetTextSection}>
+                        <Text style={styles.modalPictureText}>
+                          {editSunscreen.is_border_visible === 0
+                            ? 'Show Solid Border'
+                            : 'Hide Solid Border'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </BottomSheetView>
+          </BottomSheetModal>
+        </>
       ) : (
         <ErrorScreen />
       )}
-      <BottomSheetModal
-        ref={editSheetRef}
-        snapPoints={['60%']}
-        enableDynamicSizing={false}
-        enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.sheetHandle}
-      >
-        <BottomSheetView style={styles.sheetContent}>
-          <View style={styles.modalHeader}>
-            <Pressable
-              style={[
-                styles.modalHeaderOption,
-                {
-                  opacity: sheetMode === 'picture' ? 1 : 0.3,
-                },
-              ]}
-              onPress={() => setSheetMode('picture')}
-            >
-              <Text style={styles.modalHeaderText}>Edit Picture</Text>
-              <View style={styles.modalSeperator} />
-            </Pressable>
-            <Pressable
-              style={[
-                styles.modalHeaderOption,
-                {
-                  opacity: sheetMode === 'color' ? 1 : 0.3,
-                },
-              ]}
-              onPress={() => setSheetMode('color')}
-            >
-              <Text style={styles.modalHeaderText}>Edit Color</Text>
-              <View style={styles.modalSeperator} />
-            </Pressable>
-          </View>
-          {sheetMode === 'picture' && (
-            <View style={styles.modalPictureContainer}>
-              <Pressable
-                style={styles.modalPictureButton}
-                onPress={uploadImage}
-                disabled={isWaitingLibrary}
-              >
-                <Ionicons
-                  name="images-outline"
-                  size={moderateScale(25)}
-                  style={styles.modalPictureIcon}
-                />
-                {isWaitingLibrary ? (
-                  <LoadingDots size={scale(5)} />
-                ) : (
-                  <Text style={styles.modalPictureText}>Choose from library</Text>
-                )}
-              </Pressable>
-              <Pressable
-                style={styles.modalPictureButton}
-                onPress={takeImage}
-                disabled={isWaitingPhoto}
-              >
-                <Ionicons
-                  name="camera-outline"
-                  size={moderateScale(25)}
-                  style={styles.modalPictureIcon}
-                />
-                {isWaitingPhoto ? (
-                  <LoadingDots size={scale(5)} />
-                ) : (
-                  <Text style={styles.modalPictureText}>Take photo</Text>
-                )}
-              </Pressable>
-              <Pressable style={styles.modalPictureButton} onPress={removeImage}>
-                <Ionicons
-                  name="trash-outline"
-                  size={moderateScale(25)}
-                  style={[styles.modalPictureIcon, styles.modalPictureDelete]}
-                />
-                <Text style={[styles.modalPictureText, styles.modalPictureDelete]}>
-                  Remove current image
-                </Text>
-              </Pressable>
-            </View>
-          )}
-          {sheetMode === 'color' && (
-            <View style={styles.modalColorContainer}>
-              <Text style={styles.modalPictureText}>[Placeholder]</Text>
-            </View>
-          )}
-        </BottomSheetView>
-      </BottomSheetModal>
       <ImageViewer
         isFocused={isImageFocused}
         setIsFocused={setIsImageFocused}
@@ -952,7 +1087,7 @@ const styles = ScaledSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: '2@s',
-    borderRadius: 30,
+    borderRadius: IMAGE_OUTER_RADIUS,
   },
 
   image: {
@@ -1051,10 +1186,6 @@ const styles = ScaledSheet.create({
     color: ERROR_RED,
   },
 
-  sheetContent: {
-    backgroundColor: MAIN_BACKGROUND,
-  },
-
   sheetBackground: {
     backgroundColor: MAIN_BACKGROUND,
     borderTopLeftRadius: 24,
@@ -1063,7 +1194,7 @@ const styles = ScaledSheet.create({
 
   sheetHandle: {
     width: '11%',
-    height: '2@s',
+    height: '2.5@s',
     backgroundColor: PROFILE_TEXT,
   },
 
@@ -1079,7 +1210,7 @@ const styles = ScaledSheet.create({
   },
 
   modalHeaderText: {
-    fontSize: '15@ms',
+    fontSize: `${FONT_HEADER}@ms`,
     fontWeight: 600,
     color: PROFILE_TEXT,
     textAlign: 'center',
@@ -1102,7 +1233,7 @@ const styles = ScaledSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: '10@s',
-    paddingBlock: '10@s',
+    paddingBlock: '9@s',
     marginBlock: '1@s',
   },
 
@@ -1111,7 +1242,7 @@ const styles = ScaledSheet.create({
   },
 
   modalPictureText: {
-    fontSize: '16@ms',
+    fontSize: `${FONT_HEADER}@ms`,
     fontWeight: 500,
     color: PROFILE_TEXT,
   },
@@ -1120,7 +1251,47 @@ const styles = ScaledSheet.create({
     color: '#f21a17',
   },
 
-  modalColorContainer: {
-    padding: '4%',
+  modalColorContainer: {},
+
+  modalColorImages: {
+    paddingInline: '4%',
+    paddingBlock: '20@s',
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    gap: `${SECTION_GAP}@s`,
+  },
+
+  imageCard: {
+    width: '111@s',
+    aspectRatio: 1,
+    backgroundColor: PLACEHOLDER_BG,
+    borderRadius: IMAGE_OUTER_RADIUS,
+    borderWidth: '1.23@ms',
+  },
+
+  modalColorButtons: {
+    paddingInline: '4%',
+    paddingBlock: `${SECTION_GAP}@s`,
+    gap: `${SECTION_GAP}@s`,
+  },
+
+  modalColorSetButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: '8@s',
+    paddingBlock: '2.5@s',
+    paddingInlineStart: '8@s',
+    paddingInlineEnd: '2.5@s',
+    backgroundColor: '#5e6163',
+    borderRadius: '4@ms',
+  },
+
+  modalColorSetTextSection: {
+    flex: 1,
+    alignItems: 'center',
+    paddingBlock: '7@s',
+    backgroundColor: SEPARATOR,
+    borderRadius: '4@ms',
   },
 })

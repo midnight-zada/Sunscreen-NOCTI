@@ -2,7 +2,7 @@ import ErrorScreen from '@/components/ErrorScreen'
 import ImageViewer from '@/components/ImageViewer'
 import MapLocationPicker, { MapCoordinate } from '@/components/MapLocationPicker'
 import Separator from '@/components/Separator'
-import { getUviColor, SUCCESS_GREEN } from '@/constants/colors'
+import { getUviColor, SUCCESS_GREEN, UVI_MODERATE_COLOR } from '@/constants/colors'
 import { useAppContext } from '@/context/AppContext'
 import { useApplications } from '@/context/ApplicationContext'
 import { useUserSunscreens } from '@/context/UserSunscreenContext'
@@ -19,6 +19,7 @@ import {
   SEPARATOR,
   WATER_COLOR,
 } from '@/lib/constants'
+import { getBWContrast } from '@/lib/imageColor'
 import { formatDuration, ImageType } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker from '@react-native-community/datetimepicker'
@@ -296,17 +297,18 @@ const ViewUserSunscreen = () => {
                 style={[
                   styles.imageBorder,
                   {
-                    borderColor: sunscreen.cover_border_color
-                      ? sunscreen.cover_border_color
-                      : PLACEHOLDER_BG,
+                    borderColor:
+                      sunscreen.is_border_visible === 0
+                        ? 'transparent'
+                        : sunscreen.cover_border_color
+                          ? sunscreen.cover_border_color
+                          : PLACEHOLDER_BG,
                   },
                 ]}
                 onPress={() => focuseImage('cover')}
               >
                 <Image
-                  source={
-                    sunscreen.cover_uri ? { uri: sunscreen.cover_uri } : PLACEHOLDER_IMAGE
-                  }
+                  source={sunscreen.cover_uri ? sunscreen.cover_uri : PLACEHOLDER_IMAGE}
                   style={styles.image}
                 />
               </Pressable>
@@ -317,17 +319,18 @@ const ViewUserSunscreen = () => {
                 style={[
                   styles.imageBorder,
                   {
-                    borderColor: sunscreen.border_color
-                      ? sunscreen.border_color
-                      : PLACEHOLDER_BG,
+                    borderColor:
+                      sunscreen.is_border_visible === 0
+                        ? 'transparent'
+                        : sunscreen.border_color
+                          ? sunscreen.border_color
+                          : PLACEHOLDER_BG,
                   },
                 ]}
                 onPress={() => focuseImage('product')}
               >
                 <Image
-                  source={
-                    sunscreen.image_uri ? { uri: sunscreen.image_uri } : PLACEHOLDER_IMAGE
-                  }
+                  source={sunscreen.image_uri ? sunscreen.image_uri : PLACEHOLDER_IMAGE}
                   style={styles.image}
                 />
               </Pressable>
@@ -419,8 +422,14 @@ const ViewUserSunscreen = () => {
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
             <View style={[styles.uviPill, { backgroundColor: getUviColor(uvIndex) }]}>
-              <Text style={styles.uviText}>UVI</Text>
-              <Text style={styles.uviText}>
+              <Text
+                style={[styles.uviText, { color: getBWContrast(getUviColor(uvIndex)) }]}
+              >
+                UVI
+              </Text>
+              <Text
+                style={[styles.uviText, { color: getBWContrast(getUviColor(uvIndex)) }]}
+              >
                 {isUVIPending ? '--' : uvIndex !== null ? Math.round(uvIndex) : 'N/A'}
               </Text>
             </View>
@@ -429,7 +438,7 @@ const ViewUserSunscreen = () => {
               mode="datetime"
               display="compact"
               themeVariant="dark"
-              accentColor={getUviColor(5)}
+              accentColor={UVI_MODERATE_COLOR}
               maximumDate={new Date(Date.now() + 60 * 60 * 1000)}
               onValueChange={onDateTimeChange}
               disabled={isLoadingUVI}
@@ -593,13 +602,13 @@ const styles = ScaledSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '7@ms',
+    gap: `${ITEM_GAP}@s`,
     borderRadius: 999,
   },
 
   uviText: {
     fontSize: `${FONT_TEXT}@ms`,
-    fontWeight: 500,
+    fontWeight: 600,
     color: PROFILE_TEXT,
   },
 
@@ -614,7 +623,7 @@ const styles = ScaledSheet.create({
 
   applyText: {
     fontSize: `${FONT_TEXT}@ms`,
-    fontWeight: 500,
+    fontWeight: 600,
   },
 
   waterToggleButton: {
@@ -633,7 +642,7 @@ const styles = ScaledSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingBlock: '6@s',
-    gap: '7@ms',
+    gap: `${SINGLE_GAP}@s`,
     backgroundColor: 'transparent',
     borderWidth: '1.5@s',
     borderColor: PROFILE_TEXT,

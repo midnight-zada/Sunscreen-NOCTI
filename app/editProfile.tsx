@@ -1,5 +1,5 @@
 import ImageViewer from '@/components/ImageViewer'
-import { LoadingDots } from '@/components/LoadingDots'
+import { LoadingDots } from '@/components/icons/LoadingDots'
 import { useAppContext } from '@/context/AppContext'
 import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
 import { getBWContrast } from '@/lib/imageColor'

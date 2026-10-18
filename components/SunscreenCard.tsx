@@ -18,7 +18,7 @@ import {
   SUN_COLOR,
   WATER_COLOR,
 } from '@/lib/constants'
-import { hexToRGB } from '@/lib/imageColor'
+import { hexToRGBA, ImageEdgeGradient } from '@/lib/imageColor'
 import { formatDuration, UserSunscreen } from '@/lib/userSunscreen'
 import { Ionicons } from '@expo/vector-icons'
 import {
@@ -40,8 +40,8 @@ import { Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ms, ScaledSheet } from 'react-native-size-matters'
 import BorderButton from './BorderButton'
+import LoadingDots from './icons/LoadingDots'
 import ImageViewer from './ImageViewer'
-import LoadingDots from './LoadingDots'
 import Separator from './Separator'
 
 interface SunscreenCardProps {
@@ -49,43 +49,19 @@ interface SunscreenCardProps {
   isFocused: boolean
 }
 
-interface ImageEdgeGradientProps {
-  color?: string
-  borderRadius?: number
-  blur?: number
-  spread?: number
-  opacity?: number
-}
-
-const ImageEdgeGradient = ({
-  color = '#000',
-  borderRadius = 0,
-  blur = 3,
-  spread = 2,
-  opacity = 1,
-}: ImageEdgeGradientProps) => {
-  const [r, g, b] = hexToRGB(color)
-
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        StyleSheet.absoluteFill,
-        {
-          borderRadius: borderRadius,
-          boxShadow: `inset 0 0 ${ms(blur)}px ${ms(spread)}px rgba(${r}, ${g}, ${b}, ${opacity})`,
-        },
-      ]}
-    />
-  )
-}
-
-const IMAGE_BORDER = 24
+const IMAGE_BORDER_RADIUS = 24
+const IMAGE_BORDER_OPACITY = 0.7
 
 const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
   const insets = useSafeAreaInsets()
   const { userId } = useAppContext()
-  const { toggleFavorite, archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
+  const {
+    toggleFavorite,
+    toggleCardBorder,
+    toggleCardGradient,
+    archiveUserSunscreen,
+    duplicateSunscreen,
+  } = useUserSunscreens()
   const { addApplication } = useApplications()
   const { getCurrentLocation } = useCurrentLocation()
 
@@ -221,8 +197,8 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
         },
       ]}
     >
-      <View style={styles.imageBorder}>
-        <Pressable style={[]} onPress={() => setIsImageFocused(true)}>
+      <View style={styles.imageButton}>
+        <Pressable onPress={() => setIsImageFocused(true)}>
           <Image
             source={
               imageSource ? imageSource : require('../assets/images/placeholder.jpg')
@@ -230,23 +206,28 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             style={[
               styles.image,
               {
-                borderColor: sunscreen.cover_border_color
-                  ? sunscreen.cover_border_color
-                  : sunscreen.border_color
-                    ? sunscreen.border_color
-                    : PLACEHOLDER_BG,
+                borderColor:
+                  sunscreen.card_border_opacity === 0
+                    ? 'transparent'
+                    : sunscreen.cover_border_color
+                      ? hexToRGBA(sunscreen.cover_border_color, IMAGE_BORDER_OPACITY)
+                      : sunscreen.border_color
+                        ? hexToRGBA(sunscreen.border_color, IMAGE_BORDER_OPACITY)
+                        : hexToRGBA(PLACEHOLDER_BG, 0.2),
               },
             ]}
           />
           <ImageEdgeGradient
             color={
-              sunscreen.cover_border_color
-                ? sunscreen.cover_border_color
-                : sunscreen.border_color
-                  ? sunscreen.border_color
-                  : PLACEHOLDER_BG
+              sunscreen.card_gradient_opacity === 0
+                ? 'transparent'
+                : sunscreen.cover_border_color
+                  ? sunscreen.cover_border_color
+                  : sunscreen.border_color
+                    ? sunscreen.border_color
+                    : 'transparent'
             }
-            borderRadius={IMAGE_BORDER}
+            borderRadius={IMAGE_BORDER_RADIUS}
           />
         </Pressable>
       </View>
@@ -421,10 +402,31 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             </Pressable>
           </View>
           <View style={styles.sunscreenOptionSunscreen}>
+            <Pressable
+              style={styles.sunscreenOption}
+              onPress={() => toggleCardBorder(sunscreen.id)}
+            >
+              <Text style={styles.optionText}>
+                {sunscreen.card_border_opacity === 0 ? 'Show Border' : 'Hide Border'}
+              </Text>
+            </Pressable>
+            <Separator />
+            <Pressable
+              style={styles.sunscreenOption}
+              onPress={() => toggleCardGradient(sunscreen.id)}
+            >
+              <Text style={styles.optionText}>
+                {sunscreen.card_gradient_opacity === 0
+                  ? 'Show Gradient'
+                  : 'Hide Gradient'}
+              </Text>
+            </Pressable>
+            <Separator />
             <Pressable style={styles.sunscreenOption} onPress={onDuplicateSunscreen}>
               <Text style={styles.optionText}>Duplicate</Text>
             </Pressable>
             <Separator />
+
             <Pressable
               style={styles.sunscreenOption}
               onPress={() => {
@@ -463,7 +465,7 @@ const styles = ScaledSheet.create({
     paddingBlock: '5@s',
   },
 
-  imageBorder: {
+  imageButton: {
     marginInlineStart: '10@s',
   },
 
@@ -471,8 +473,8 @@ const styles = ScaledSheet.create({
     width: '90@s',
     aspectRatio: 1,
     backgroundColor: PLACEHOLDER_BG,
-    borderRadius: IMAGE_BORDER,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: IMAGE_BORDER_RADIUS,
+    borderWidth: '1@ms',
   },
 
   infoSection: {
@@ -619,5 +621,11 @@ const styles = ScaledSheet.create({
     color: PROFILE_TEXT,
     width: '100%',
     textAlign: 'center',
+  },
+
+  verticalSeparator: {
+    height: '140%',
+    width: 1,
+    backgroundColor: SEPARATOR,
   },
 })

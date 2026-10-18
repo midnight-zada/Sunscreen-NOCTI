@@ -6,6 +6,8 @@ import {
   InsertUserSunscreen,
   insertUserSunscreen,
   setUserSunscreenArchive,
+  setUserSunscreenCardBorderOpacity,
+  setUserSunscreenCardGradientOpacity,
   setUserSunscreenFavorite,
   SortDirection,
   SortOptions,
@@ -34,6 +36,8 @@ export type UserSunscreenContextType = {
   getById: (id: string | number) => UserSunscreen | undefined
   refreshUserSunscreens: () => Promise<void>
   toggleFavorite: (id: number) => Promise<void>
+  toggleCardBorder: (id: number) => Promise<void>
+  toggleCardGradient: (id: number) => Promise<void>
   archiveUserSunscreen: (id: number) => Promise<void>
   duplicateSunscreen: (sunscreen: UserSunscreen | InsertUserSunscreen) => Promise<number>
 }
@@ -74,6 +78,7 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const latestSunscreens = useRef(userSunscreens)
   latestSunscreens.current = userSunscreens
+  
   const isToggling = useRef(false)
 
   const toggleFavorite = useCallback(
@@ -93,6 +98,62 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
         )
       } finally {
         isToggling.current = false
+      }
+    },
+    [db, refreshUserSunscreens]
+  )
+
+  const isTogglingBorder = useRef(false)
+
+  const toggleCardBorder = useCallback(
+    async (id: number) => {
+      if (isTogglingBorder.current) return
+      isTogglingBorder.current = true
+
+      try {
+        const current = latestSunscreens.current.find((s) => s.id === id)
+        if (!current) return
+
+        await setUserSunscreenCardBorderOpacity(
+          db,
+          id,
+          current.card_border_opacity === 0 ? 1 : 0
+        )
+        await refreshUserSunscreens()
+      } catch (error) {
+        console.error(
+          `Failed To Toggle Card Border: ${error instanceof Error ? error.message : String(error)}`
+        )
+      } finally {
+        isTogglingBorder.current = false
+      }
+    },
+    [db, refreshUserSunscreens]
+  )
+
+  const isTogglingGradient = useRef(false)
+
+  const toggleCardGradient = useCallback(
+    async (id: number) => {
+      if (isTogglingGradient.current) return
+      isTogglingGradient.current = true
+
+      try {
+        const current = latestSunscreens.current.find((s) => s.id === id)
+        if (!current) return
+
+        await setUserSunscreenCardGradientOpacity(
+          db,
+          id,
+          current.card_gradient_opacity === 0 ? 1 : 0
+        )
+        await refreshUserSunscreens()
+      } catch (error) {
+        console.error(
+          `Failed To Toggle Card Gradient: ${error instanceof Error ? error.message : String(error)}`
+        )
+      } finally {
+        isTogglingGradient.current = false
       }
     },
     [db, refreshUserSunscreens]
@@ -164,6 +225,8 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       getById,
       refreshUserSunscreens,
       toggleFavorite,
+      toggleCardBorder,
+      toggleCardGradient,
       archiveUserSunscreen,
       duplicateSunscreen,
     }),
@@ -176,6 +239,8 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
       getById,
       refreshUserSunscreens,
       toggleFavorite,
+      toggleCardBorder,
+      toggleCardGradient,
       archiveUserSunscreen,
       duplicateSunscreen,
     ]
