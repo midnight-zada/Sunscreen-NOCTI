@@ -14,6 +14,7 @@ import {
   sortUserSunscreens,
   UserSunscreen,
 } from '@/lib/userSunscreen'
+import { SQLiteDatabase } from 'expo-sqlite'
 import {
   createContext,
   ReactNode,
@@ -25,6 +26,39 @@ import {
   useState,
 } from 'react'
 import { useAppContext } from './AppContext'
+
+function useBooleanFieldToggle(
+  db: SQLiteDatabase,
+  refreshUserSunscreens: () => Promise<void>,
+  latestSunscreens: React.RefObject<UserSunscreen[]>,
+  getField: (sunscreen: UserSunscreen) => number,
+  setField: (db: SQLiteDatabase, id: number, value: 0 | 1) => Promise<unknown>,
+  label: string
+) {
+  const isToggling = useRef(false)
+
+  return useCallback(
+    async (id: number) => {
+      if (isToggling.current) return
+      isToggling.current = true
+
+      try {
+        const current = latestSunscreens.current.find((s) => s.id === id)
+        if (!current) return
+
+        await setField(db, id, getField(current) === 0 ? 1 : 0)
+        await refreshUserSunscreens()
+      } catch (error) {
+        console.error(
+          `Failed To Toggle ${label}: ${error instanceof Error ? error.message : String(error)}`
+        )
+      } finally {
+        isToggling.current = false
+      }
+    },
+    [db, refreshUserSunscreens, getField, setField, label]
+  )
+}
 
 export type UserSunscreenContextType = {
   userSunscreenList: UserSunscreen[]
@@ -78,85 +112,32 @@ export function UserSunscreenProvider({ children }: { children: ReactNode }) {
 
   const latestSunscreens = useRef(userSunscreens)
   latestSunscreens.current = userSunscreens
-  
-  const isToggling = useRef(false)
 
-  const toggleFavorite = useCallback(
-    async (id: number) => {
-      if (isToggling.current) return
-      isToggling.current = true
-
-      try {
-        const current = latestSunscreens.current.find((s) => s.id === id)
-        if (!current) return
-
-        await setUserSunscreenFavorite(db, id, current.is_favorite === 1 ? 0 : 1)
-        await refreshUserSunscreens()
-      } catch (error) {
-        console.error(
-          `Failed To Toggle Favorite: ${error instanceof Error ? error.message : String(error)}`
-        )
-      } finally {
-        isToggling.current = false
-      }
-    },
-    [db, refreshUserSunscreens]
+  const toggleFavorite = useBooleanFieldToggle(
+    db,
+    refreshUserSunscreens,
+    latestSunscreens,
+    (s) => s.is_favorite,
+    setUserSunscreenFavorite,
+    'Favorite'
   )
 
-  const isTogglingBorder = useRef(false)
-
-  const toggleCardBorder = useCallback(
-    async (id: number) => {
-      if (isTogglingBorder.current) return
-      isTogglingBorder.current = true
-
-      try {
-        const current = latestSunscreens.current.find((s) => s.id === id)
-        if (!current) return
-
-        await setUserSunscreenCardBorderOpacity(
-          db,
-          id,
-          current.card_border_opacity === 0 ? 1 : 0
-        )
-        await refreshUserSunscreens()
-      } catch (error) {
-        console.error(
-          `Failed To Toggle Card Border: ${error instanceof Error ? error.message : String(error)}`
-        )
-      } finally {
-        isTogglingBorder.current = false
-      }
-    },
-    [db, refreshUserSunscreens]
+  const toggleCardBorder = useBooleanFieldToggle(
+    db,
+    refreshUserSunscreens,
+    latestSunscreens,
+    (s) => s.card_border_opacity,
+    setUserSunscreenCardBorderOpacity,
+    'Card Border'
   )
 
-  const isTogglingGradient = useRef(false)
-
-  const toggleCardGradient = useCallback(
-    async (id: number) => {
-      if (isTogglingGradient.current) return
-      isTogglingGradient.current = true
-
-      try {
-        const current = latestSunscreens.current.find((s) => s.id === id)
-        if (!current) return
-
-        await setUserSunscreenCardGradientOpacity(
-          db,
-          id,
-          current.card_gradient_opacity === 0 ? 1 : 0
-        )
-        await refreshUserSunscreens()
-      } catch (error) {
-        console.error(
-          `Failed To Toggle Card Gradient: ${error instanceof Error ? error.message : String(error)}`
-        )
-      } finally {
-        isTogglingGradient.current = false
-      }
-    },
-    [db, refreshUserSunscreens]
+  const toggleCardGradient = useBooleanFieldToggle(
+    db,
+    refreshUserSunscreens,
+    latestSunscreens,
+    (s) => s.card_gradient_opacity,
+    setUserSunscreenCardGradientOpacity,
+    'Card Gradient'
   )
 
   const archiveUserSunscreen = useCallback(

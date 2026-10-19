@@ -62,8 +62,10 @@ async function runMigrations(db: SQLite.SQLiteDatabase) {
       notes TEXT,
       cover_uri TEXT,
       cover_border_color TEXT,
+      cover_color_option NUMBER NOT NULL DEFAULT 0,
       image_uri TEXT,                   -- user's own photo/library pick only
       border_color TEXT,
+      color_option NUMBER NOT NULL DEFAULT 0,
       is_border_visible INTEGER NOT NULL DEFAULT 1,
       card_border_opacity REAL NOT NULL DEFAULT 1,
       card_border_intensity REAL NOT NULL DEFAULT 1,

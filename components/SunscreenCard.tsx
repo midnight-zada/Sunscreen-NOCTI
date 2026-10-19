@@ -210,9 +210,15 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   sunscreen.card_border_opacity === 0
                     ? 'transparent'
                     : sunscreen.cover_border_color
-                      ? hexToRGBA(sunscreen.cover_border_color, IMAGE_BORDER_OPACITY)
+                      ? hexToRGBA(
+                          sunscreen.cover_border_color[sunscreen.cover_color_option],
+                          IMAGE_BORDER_OPACITY
+                        )
                       : sunscreen.border_color
-                        ? hexToRGBA(sunscreen.border_color, IMAGE_BORDER_OPACITY)
+                        ? hexToRGBA(
+                            sunscreen.border_color[sunscreen.color_option],
+                            IMAGE_BORDER_OPACITY
+                          )
                         : hexToRGBA(PLACEHOLDER_BG, 0.2),
               },
             ]}
@@ -222,9 +228,9 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
               sunscreen.card_gradient_opacity === 0
                 ? 'transparent'
                 : sunscreen.cover_border_color
-                  ? sunscreen.cover_border_color
+                  ? sunscreen.cover_border_color[0]
                   : sunscreen.border_color
-                    ? sunscreen.border_color
+                    ? sunscreen.border_color[0]
                     : 'transparent'
             }
             borderRadius={IMAGE_BORDER_RADIUS}
@@ -421,12 +427,12 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
                   : 'Hide Gradient'}
               </Text>
             </Pressable>
-            <Separator />
+          </View>
+          <View style={styles.sunscreenOptionSunscreen}>
             <Pressable style={styles.sunscreenOption} onPress={onDuplicateSunscreen}>
               <Text style={styles.optionText}>Duplicate</Text>
             </Pressable>
             <Separator />
-
             <Pressable
               style={styles.sunscreenOption}
               onPress={() => {
@@ -445,7 +451,7 @@ const SunscreenCard = memo(({ sunscreen, isFocused }: SunscreenCardProps) => {
             </Pressable>
           </View>
           <Pressable
-            style={[styles.option, styles.optionCancel]}
+            style={styles.optionCancel}
             onPress={() => optionSheetRef.current?.dismiss()}
           >
             <Text style={styles.optionText}>Cancel</Text>
@@ -579,8 +585,6 @@ const styles = ScaledSheet.create({
     color: SEPARATOR_BRIGHT,
   },
 
-  option: {},
-
   optionSheetBackground: {
     backgroundColor: MODAL_BG,
     borderTopLeftRadius: 24,
@@ -595,7 +599,7 @@ const styles = ScaledSheet.create({
 
   optionButtonSection: {
     backgroundColor: MODAL_BG,
-    gap: '10@s',
+    gap: '8@s',
   },
 
   sunscreenOptionSunscreen: {
@@ -621,11 +625,5 @@ const styles = ScaledSheet.create({
     color: PROFILE_TEXT,
     width: '100%',
     textAlign: 'center',
-  },
-
-  verticalSeparator: {
-    height: '140%',
-    width: 1,
-    backgroundColor: SEPARATOR,
   },
 })

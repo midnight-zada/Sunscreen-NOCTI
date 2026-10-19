@@ -301,7 +301,7 @@ const ViewUserSunscreen = () => {
                       sunscreen.is_border_visible === 0
                         ? 'transparent'
                         : sunscreen.cover_border_color
-                          ? sunscreen.cover_border_color
+                          ? sunscreen.cover_border_color[sunscreen.cover_color_option]
                           : PLACEHOLDER_BG,
                   },
                 ]}
@@ -323,7 +323,7 @@ const ViewUserSunscreen = () => {
                       sunscreen.is_border_visible === 0
                         ? 'transparent'
                         : sunscreen.border_color
-                          ? sunscreen.border_color
+                          ? sunscreen.border_color[sunscreen.color_option]
                           : PLACEHOLDER_BG,
                   },
                 ]}

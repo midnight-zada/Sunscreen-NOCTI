@@ -57,9 +57,11 @@ export interface UserSunscreen {
   is_favorite: number
   notes: string | null
   cover_uri: string | null
-  cover_border_color: string | null
+  cover_border_color: string[] | null
+  cover_color_option: number
   image_uri: string | null
-  border_color: string | null
+  border_color: string[] | null
+  color_option: number
   is_border_visible: number
   card_border_opacity: number
   card_border_intensity: number
@@ -157,20 +159,38 @@ export type EditUserSunscreen = Omit<
   'id' | 'user_id' | 'is_archived' | 'created_at' | 'synced_at'
 >
 
-// User Sunscreen Functions
+type StoredUserSunscreen = Omit<UserSunscreen, 'border_color' | 'cover_border_color'> & {
+  border_color: string | null
+  cover_border_color: string | null
+}
+
+function parseUserSunscreenRow(row: StoredUserSunscreen): UserSunscreen {
+  return {
+    ...row,
+    border_color: row.border_color ? JSON.parse(row.border_color) : null,
+    cover_border_color: row.cover_border_color
+      ? JSON.parse(row.cover_border_color)
+      : null,
+  }
+}
+
 export async function getUserSunscreens(db: SQLiteDatabase): Promise<UserSunscreen[]> {
-  return db.getAllAsync<UserSunscreen>(/* sql */ `
+  const rows = await db.getAllAsync<StoredUserSunscreen>(/* sql */ `
     SELECT * FROM user_sunscreen
   `)
+
+  return rows.map(parseUserSunscreenRow)
 }
 
 export async function getActiveUserSunscreens(
   db: SQLiteDatabase
 ): Promise<UserSunscreen[]> {
-  return db.getAllAsync<UserSunscreen>(/* sql */ `
+  const rows = await db.getAllAsync<StoredUserSunscreen>(/* sql */ `
     SELECT * FROM user_sunscreen
     WHERE is_archived = 0
   `)
+
+  return rows.map(parseUserSunscreenRow)
 }
 
 export async function insertUserSunscreen(
@@ -183,19 +203,22 @@ export async function insertUserSunscreen(
     /* sql */ `
     INSERT INTO user_sunscreen (
       user_id, sunscreen_id, nickname, is_favorite, notes, cover_uri, cover_border_color, 
-      image_uri, border_color, is_border_visible, card_border_opacity,
-      card_border_intensity, card_gradient_opacity, card_gradient_intensity, name, brand, 
-      spf, type, form, coverage, duration, water_duration, barcode, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      cover_color_option, image_uri, border_color, color_option, is_border_visible, 
+      card_border_opacity, card_border_intensity, card_gradient_opacity, 
+      card_gradient_intensity, name, brand, spf, type, form, coverage, duration, 
+      water_duration, barcode, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     data.user_id,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
     data.is_favorite ?? 0,
     data.notes ?? null,
     data.cover_uri ?? null,
-    data.cover_border_color ?? null,
+    data.cover_border_color ? JSON.stringify(data.cover_border_color) : null,
+    data.cover_color_option ?? 0,
     data.image_uri ?? null,
-    data.border_color ?? null,
+    data.border_color ? JSON.stringify(data.border_color) : null,
+    data.color_option ?? 0,
     data.is_border_visible ?? 1,
     data.card_border_opacity ?? 1,
     data.card_border_intensity ?? 1,
@@ -227,20 +250,23 @@ export async function editUserSunscreen(
   const result = await db.runAsync(
     /* sql */ `
     UPDATE user_sunscreen SET
-      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?, cover_uri = ?,
-      cover_border_color = ?, image_uri = ?, border_color = ?, is_border_visible = ?,
-      card_border_opacity = ?, card_border_intensity = ?, card_gradient_opacity = ?,
-      card_gradient_intensity = ?, name = ?, brand = ?, spf = ?, type = ?, form = ?, 
-      coverage = ?, duration = ?, water_duration = ?, barcode = ?, updated_at = ?
+      sunscreen_id = ?, nickname = ?, is_favorite = ?, notes = ?, cover_uri = ?, 
+      cover_border_color = ?, cover_color_option = ?, image_uri = ?, border_color = ?, 
+      color_option = ?, is_border_visible = ?, card_border_opacity = ?, 
+      card_border_intensity = ?, card_gradient_opacity = ?, card_gradient_intensity = ?, 
+      name = ?, brand = ?, spf = ?, type = ?, form = ?, coverage = ?, duration = ?, 
+      water_duration = ?, barcode = ?, updated_at = ?
     WHERE id = ?`,
     data.sunscreen_id ?? null,
     data.nickname ?? null,
     data.is_favorite,
     data.notes ?? null,
     data.cover_uri ?? null,
-    data.cover_border_color ?? null,
+    data.cover_border_color ? JSON.stringify(data.cover_border_color) : null,
+    data.cover_color_option ?? 0,
     data.image_uri ?? null,
-    data.border_color ?? null,
+    data.border_color ? JSON.stringify(data.border_color) : null,
+    data.color_option ?? 0,
     data.is_border_visible ?? 1,
     data.card_border_opacity ?? 1,
     data.card_border_intensity ?? 1,

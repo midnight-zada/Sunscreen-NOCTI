@@ -1,8 +1,9 @@
-import { PROFILE_SCREEN_BG_COLOR } from '@/lib/constants'
+import { Buffer } from 'buffer'
+import { extractColorsFromImageData } from 'extract-colors'
 import { File } from 'expo-file-system'
 import { Image } from 'expo-image'
-import { ImageManipulator } from 'expo-image-manipulator'
-import { getColors } from 'react-native-image-colors'
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
+import { PNG } from 'pngjs/browser'
 
 import type { ImageRef } from 'expo-image-manipulator'
 import { StyleSheet, View } from 'react-native'
@@ -48,16 +49,6 @@ export const getLuminance = ([r, g, b]: [number, number, number]): number => {
   return 0.299 * cR + 0.587 * cG + 0.114 * cB
 }
 
-export const colorDistance = (
-  a: [number, number, number],
-  b: [number, number, number]
-): number => {
-  const [aR, aG, aB] = a.map(rgbClamp)
-  const [bR, bG, bB] = b.map(rgbClamp)
-
-  return Math.hypot(aR - bR, aG - bG, aB - bB)
-}
-
 export const getBWContrast = (hexColor: string | null) => {
   if (!hexColor || !isValidStrippedHex(hexColor.replace('#', ''))) return '#fff'
 
@@ -70,56 +61,46 @@ export const getBWContrast = (hexColor: string | null) => {
 const EDGE_STRIP_FRACTION = 0.1 // 0-1
 const WHITE_EDGE_THRESHOLD = 200 // 0-255
 const DARK_EDGE_THRESHOLD = 70 // 0-255
-const COLOR_DISTANCE = 44 // 0-442
 
 type Crop = { originX: number; originY: number; width: number; height: number }
-type Clusters = { samples: RGB[]; centroid: RGB }
 
-export async function sampleBorder(uri: string, crop: Crop): Promise<RGB | null> {
-  let croppedURI: string | undefined
-  let image: ImageRef | undefined
+const BORDER_SAMPLE_MAX_DIMENSION = 100
 
-  try {
-    image = await ImageManipulator.manipulate(uri).crop(crop).renderAsync()
-    const saved = await image.saveAsync()
-    croppedURI = saved.uri
+type Resize = { width?: number; height?: number }
 
-    const result = await getColors(croppedURI, {
-      fallback: PROFILE_SCREEN_BG_COLOR,
-    })
+function clampResize(width: number, height: number): Resize | undefined {
+  const longest = Math.max(width, height)
+  if (longest <= BORDER_SAMPLE_MAX_DIMENSION) return undefined
 
-    const color = result.platform === 'ios' ? result.background : null
-
-    return color ? hexToRGB(color) : null
-  } catch (error) {
-    console.log(
-      `Error: ${error instanceof Error ? error.message : String(error)} in sampling edge ${JSON.stringify(crop)}`
-    )
-    return null
-  } finally {
-    image?.release()
-    if (croppedURI) new File(croppedURI).delete()
-  }
+  return width >= height
+    ? { width: BORDER_SAMPLE_MAX_DIMENSION }
+    : { height: BORDER_SAMPLE_MAX_DIMENSION }
 }
 
-export function clusterSamples(samples: RGB[]): RGB[][] {
-  const clusters: Clusters[] = []
+async function getPixelData(
+  uri: string,
+  options: { crop?: Crop; resize?: Resize }
+): Promise<{ data: Uint8ClampedArray; width: number; height: number } | null> {
+  let image: ImageRef | undefined
+  let savedURI: string | undefined
 
-  for (const s of samples) {
-    const cluster = clusters.find((c) => colorDistance(c.centroid, s) <= COLOR_DISTANCE)
+  try {
+    let context = ImageManipulator.manipulate(uri)
+    if (options.crop) context = context.crop(options.crop)
+    if (options.resize) context = context.resize(options.resize)
 
-    if (cluster) {
-      const count = cluster.samples.length
-      cluster.centroid = cluster.centroid.map(
-        (v, i) => (v * count + s[i]) / (count + 1)
-      ) as RGB
-      cluster.samples.push(s)
-    } else {
-      clusters.push({ samples: [s], centroid: s })
-    }
+    image = await context.renderAsync()
+    const saved = await image.saveAsync({ format: SaveFormat.PNG, base64: true })
+    savedURI = saved.uri
+
+    if (!saved.base64) return null
+
+    const { data, width, height } = PNG.sync.read(Buffer.from(saved.base64, 'base64'))
+    return { data: new Uint8ClampedArray(data), width, height }
+  } finally {
+    image?.release()
+    if (savedURI) new File(savedURI).delete()
   }
-
-  return clusters.map((c) => c.samples)
 }
 
 export async function getBorderColor(uri: string): Promise<string | null> {
@@ -135,38 +116,66 @@ export async function getBorderColor(uri: string): Promise<string | null> {
       { originX: width - cropWidth, originY: 0, width: cropWidth, height },
     ]
 
-    let borderSamples = (
-      await Promise.all(borderCrops.map((crop) => sampleBorder(uri, crop)))
-    ).filter((sample) => sample !== null)
+    const borderPixels = (
+      await Promise.all(
+        borderCrops.map((crop) =>
+          getPixelData(uri, { crop, resize: clampResize(crop.width, crop.height) })
+        )
+      )
+    ).filter((pixels) => pixels !== null)
 
-    if (borderSamples.length === 0) return null
+    if (borderPixels.length === 0) return null
 
-    const brightest = borderSamples.reduce((a, b) =>
-      getLuminance(b) > getLuminance(a) ? b : a
+    const mergedData = new Uint8ClampedArray(
+      borderPixels.reduce((total, { data }) => total + data.length, 0)
     )
-    const darkest = borderSamples.reduce((a, b) =>
-      getLuminance(b) < getLuminance(a) ? b : a
+    let offset = 0
+    for (const { data } of borderPixels) {
+      mergedData.set(data, offset)
+      offset += data.length
+    }
+
+    const totalPixels = mergedData.length / 4
+
+    const colors = extractColorsFromImageData(
+      { data: mergedData, width: totalPixels, height: 1 },
+      {
+        pixels: totalPixels,
+        colorValidator: (r, g, b, a) => {
+          if ((a ?? 255) <= 250) return false
+          const luminance = getLuminance([r, g, b])
+          return luminance > DARK_EDGE_THRESHOLD && luminance < WHITE_EDGE_THRESHOLD
+        },
+      }
     )
 
-    if (borderSamples.length > 1 && getLuminance(brightest) >= WHITE_EDGE_THRESHOLD)
-      borderSamples = borderSamples.filter((sample) => sample !== brightest)
-
-    if (borderSamples.length > 1 && getLuminance(darkest) <= DARK_EDGE_THRESHOLD)
-      borderSamples = borderSamples.filter((sample) => sample !== darkest)
-
-    const clusters = clusterSamples(borderSamples)
-    const mainCluster = clusters.reduce((a, b) => (b.length > a.length ? b : a))
-    const blended = mainCluster.reduce<RGB>(
-      (acc, rgb) => acc.map((channel, i) => channel + rgb[i] / mainCluster.length) as RGB,
-      [0, 0, 0]
-    )
-
-    return rgbToHex(blended)
+    return colors[0]?.hex ?? null
   } catch (error) {
-    console.log(
-      `Error: ${error instanceof Error ? error.message : String(error)} in getBorderColor`
+    console.error(
+      `Failed To Get Border Color: ${error instanceof Error ? error.message : String(error)}`
     )
     return null
+  }
+}
+
+const SWATCH_SAMPLE_WIDTH = 64
+const SWATCH_COUNT = 4
+
+export async function getColorSwatch(uri: string): Promise<string[]> {
+  try {
+    const pixels = await getPixelData(uri, { resize: { width: SWATCH_SAMPLE_WIDTH } })
+    if (!pixels) return []
+
+    const colors = extractColorsFromImageData(pixels, {
+      pixels: pixels.width * pixels.height,
+    })
+
+    return colors.slice(0, SWATCH_COUNT).map((color) => color.hex)
+  } catch (error) {
+    console.error(
+      `Failed To Get Color Swatch: ${error instanceof Error ? error.message : String(error)}`
+    )
+    return []
   }
 }
 

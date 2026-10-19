@@ -71,8 +71,10 @@ const EMPTY_SUNSCREEN: InsertUserSunscreen = {
   notes: null,
   cover_uri: null,
   cover_border_color: null,
+  cover_color_option: 0,
   image_uri: null,
   border_color: null,
+  color_option: 0,
   is_border_visible: 1,
   card_border_opacity: 1,
   card_border_intensity: 1,
@@ -117,8 +119,7 @@ const EditUserSunscreen = () => {
   const { db, userId } = useAppContext()
   const { archiveUserSunscreen, duplicateSunscreen } = useUserSunscreens()
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { getById, refreshUserSunscreens, toggleCardBorder, toggleCardGradient } =
-    useUserSunscreens()
+  const { getById, refreshUserSunscreens } = useUserSunscreens()
 
   const [editSunscreen, setEditSunscreen] = useState<InsertUserSunscreen | null>(null)
   const [sheetMode, setSheetMode] = useState<EditSheetMode>(null)
@@ -308,15 +309,29 @@ const EditUserSunscreen = () => {
 
       if (type === 'cover') {
         setEditSunscreenField('cover_uri', uri)
-        setEditSunscreenField('cover_border_color', borderColor)
+        if (borderColor) {
+          const prevColors = editSunscreen?.cover_border_color
+          setEditSunscreenField(
+            'cover_border_color',
+            prevColors ? [borderColor, ...prevColors.slice(1)] : [borderColor]
+          )
+          setEditSunscreenField('cover_color_option', 0)
+        }
       } else {
         setEditSunscreenField('image_uri', uri)
-        setEditSunscreenField('border_color', borderColor)
+        if (borderColor) {
+          const prevColors = editSunscreen?.border_color
+          setEditSunscreenField(
+            'border_color',
+            prevColors ? [borderColor, ...prevColors.slice(1)] : [borderColor]
+          )
+          setEditSunscreenField('color_option', 0)
+        }
       }
 
       editSheetRef.current?.close()
     },
-    [setEditSunscreenField]
+    [setEditSunscreenField, editSunscreen]
   )
 
   const uploadImage = useCallback(async () => {
@@ -557,7 +572,9 @@ const EditUserSunscreen = () => {
                         editSunscreen.is_border_visible === 0
                           ? 'transparent'
                           : editSunscreen.cover_border_color
-                            ? editSunscreen.cover_border_color
+                            ? editSunscreen.cover_border_color[
+                                editSunscreen.cover_color_option
+                              ]
                             : PLACEHOLDER_BG,
                     },
                   ]}
@@ -591,7 +608,7 @@ const EditUserSunscreen = () => {
                         editSunscreen.is_border_visible === 0
                           ? 'transparent'
                           : editSunscreen.border_color
-                            ? editSunscreen.border_color
+                            ? editSunscreen.border_color[editSunscreen.color_option]
                             : PLACEHOLDER_BG,
                     },
                   ]}
@@ -899,8 +916,14 @@ const EditUserSunscreen = () => {
                           editSunscreen.card_gradient_opacity === 0
                             ? 'transparent'
                             : imageType === 'cover'
-                              ? (editSunscreen?.cover_border_color ?? PLACEHOLDER_BG)
-                              : (editSunscreen?.border_color ?? PLACEHOLDER_BG)
+                              ? editSunscreen.cover_border_color
+                                ? editSunscreen.cover_border_color[
+                                    editSunscreen.cover_color_option
+                                  ]
+                                : PLACEHOLDER_BG
+                              : editSunscreen.border_color
+                                ? editSunscreen.border_color[editSunscreen.color_option]
+                                : PLACEHOLDER_BG
                         }
                         borderRadius={IMAGE_OUTER_RADIUS}
                         blur={3.69}
